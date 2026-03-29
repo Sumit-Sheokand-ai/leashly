@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  apiKeys       ApiKey[]
+  rules         Rule[]
+  requestLogs   RequestLog[]
+  alerts        Alert[]
+  notifications Notification[]
+}
+
+model ApiKey {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  keyHash      String
+  encryptedKey String
+  proxyKey     String   @unique
+  provider     String
+  createdAt    DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestLogs RequestLog[]
+}
+
+model Rule {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String
+  config    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RequestLog {
+  id               String   @id @default(cuid())
+  userId           String
+  apiKeyId         String
+  timestamp        DateTime @default(now())
+  provider         String
+  model            String
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalCost        Float    @default(0)
+  flagged          Boolean  @default(false)
+  flagReason       String?
+  durationMs       Int      @default(0)
+  statusCode       Int      @default(200)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  threshold   Float
+  notifyEmail String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

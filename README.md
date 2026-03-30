@@ -32,32 +32,6 @@ Everything else — billing, rate limiting, injection blocking, logs — happens
 
 ---
 
-## Deploy on Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Sumit-Sheokand-ai/leashly)
-
-Set these environment variables in your Vercel dashboard:
-
-| Variable | How to generate |
-|---|---|
-| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Your app URL, e.g. `https://leashly.vercel.app` |
-| `ENCRYPTION_KEY` | `openssl rand -hex 16` |
-| `DATABASE_URL` | `file:./data/prod.db` |
-
----
-
-## Deploy with Docker
-
-```bash
-git clone https://github.com/Sumit-Sheokand-ai/leashly.git
-cd leashly
-cp .env.example .env.production
-# fill in .env.production with your real secrets
-docker compose up -d
-```
-
----
 
 ## Supported providers
 

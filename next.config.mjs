@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+const SUPABASE_URL = "https://jjguuxekekxvfyjckgjf.supabase.co";
+const SUPABASE_WSS = "wss://jjguuxekekxvfyjckgjf.supabase.co";
+
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -13,11 +16,13 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval in dev; tighten in prod if needed
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' blob: data:",
-      "connect-src 'self'",
+      "img-src 'self' blob: data: https:",
+      // Allow Supabase API + realtime, Google OAuth, and localhost dev
+      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com`,
+      "frame-src https://accounts.google.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },
@@ -35,12 +40,10 @@ const nextConfig = {
       },
     ];
   },
-  // Proxy API routes can be large — increase body size limit
   experimental: {
     serverActions: {
       bodySizeLimit: "4mb",
     },
-    // Allow build to continue even if font optimization fails
     optimizePackageImports: ["next/font/google"],
   },
 };

@@ -6,13 +6,20 @@ export const metadata: Metadata = {
   description:
     "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection between your app and any LLM provider.",
   icons: {
-    icon: "/logo-icon.svg",
-    shortcut: "/logo-icon.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo-icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/logo-icon-180.png",
+    other: [
+      { rel: "icon", url: "/logo-icon-192.png", sizes: "192x192" },
+    ],
   },
   openGraph: {
     title: "Leashly — AI Cost Control & Abuse Prevention Proxy",
     description: "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection.",
     type: "website",
+    images: [{ url: "/logo-icon.png", width: 512, height: 512 }],
   },
 };
 

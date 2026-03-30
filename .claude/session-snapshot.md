@@ -4,7 +4,7 @@
 - None
 
 ### Open decisions
-- None
+- User needs to confirm Vercel deployment URL for NEXTAUTH_URL (likely https://leashly.vercel.app)
 
 ### Where we left off
 - GitHub repo: https://github.com/Sumit-Sheokand-ai/leashly.git

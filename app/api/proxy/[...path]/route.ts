@@ -4,6 +4,7 @@ import { decrypt } from "@/lib/encryption";
 import { calculateCost, detectProvider } from "@/lib/cost";
 import { checkRateLimit, checkSpendCap } from "@/lib/rate-limit";
 import { checkInjection, extractPromptText } from "@/lib/injection-filter";
+import { sendAlertEmail } from "@/lib/resend";
 import type {
   SpendCapConfig,
   RateLimitConfig,
@@ -60,6 +61,7 @@ async function checkAlerts(userId: string, cost: number, flagged: boolean) {
       await prisma.notification.create({
         data: { userId, type: alert.type, message },
       });
+      await sendAlertEmail(alert.notifyEmail, alert.type, message).catch(() => {});
     }
   }
 }
@@ -163,7 +165,7 @@ export async function POST(
   }
 
   // 5. Build upstream URL
-  const { path: pathSegments } = await params;
+  const { path: pathSegments = [] } = await params;
   const provider = apiKeyRecord.provider;
   const baseUrl = PROVIDER_ENDPOINTS[provider] ?? PROVIDER_ENDPOINTS.openai;
 

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = req.nextUrl;
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
@@ -16,7 +15,7 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const where: Record<string, unknown> = { userId: session.user.id };
+  const where: Record<string, unknown> = { userId: user.id };
   if (provider) where.provider = provider;
   if (flaggedOnly) where.flagged = true;
   if (model) where.model = model;

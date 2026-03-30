@@ -1,173 +1,82 @@
 # Leashly
 
-**AI cost control and abuse prevention proxy.** Sits between your app and any LLM provider to enforce spend caps, rate limits, and prompt injection protection — with zero code changes to your existing SDK usage.
+Stop surprise AI bills. Leashly sits between your app and any LLM provider — enforcing spend caps, rate limits, and prompt injection protection with a single line of code.
 
 ---
 
-## What it does
+## How it works
 
-- **Spend caps** — daily/weekly/monthly limits per key or user, block or alert when hit
-- **Rate limiting** — per-minute/hour/day throttling with token bucket algorithm
-- **Prompt injection shield** — blocks 50+ known jailbreak and extraction patterns
-- **Cost attribution** — every token and dollar tracked by model, key, and user
-- **Real-time alerts** — in-app notifications on threshold breaches
-- **Full audit logs** — paginated request history with CSV export
-- **Streaming support** — transparent SSE passthrough
-- **AES-256 encryption** — real API keys encrypted at rest, never exposed
-
----
-
-## Quick start (local)
-
-```bash
-git clone https://github.com/Sumit-Sheokand-ai/leashly.git
-cd leashly
-npm install
-cp .env.example .env.local
-# fill in .env.local (see below)
-npx prisma migrate dev --name init
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
----
-
-## Environment variables
-
-```bash
-DATABASE_URL="file:./dev.db"
-NEXTAUTH_SECRET="$(openssl rand -base64 32)"
-NEXTAUTH_URL="http://localhost:3000"
-ENCRYPTION_KEY="$(openssl rand -hex 16)"
-```
-
-For production, set `NEXTAUTH_URL` to your public domain.
-
----
-
-## Usage
-
-1. Register at `/register`
-2. Go to **API Keys** → Add Key — paste your real OpenAI/Anthropic/Gemini key
-3. Copy the generated `lsh_xxx` proxy key
-4. Point your SDK at Leashly:
+Change one environment variable. That's it.
 
 ```js
-import OpenAI from 'openai';
-
 const client = new OpenAI({
-  apiKey: process.env.LEASHLY_KEY,   // your lsh_xxx proxy key
+  apiKey: process.env.LEASHLY_KEY,       // your lsh_xxx proxy key
   baseURL: 'https://api.leashly.dev/proxy',
 });
 ```
 
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    api_key=os.environ["LEASHLY_KEY"],
-    base_url="https://api.leashly.dev/proxy",
-)
-```
-
-```bash
-curl https://api.leashly.dev/proxy/chat/completions \
-  -H "Authorization: Bearer $LEASHLY_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}'
-```
+Everything else — billing, rate limiting, injection blocking, logs — happens automatically.
 
 ---
 
-## Deploy
+## Features
 
-### Vercel (recommended)
+- **Spend caps** — set daily/weekly/monthly limits, block or alert when hit
+- **Rate limiting** — per-minute and per-hour throttling per key or IP
+- **Prompt injection shield** — blocks jailbreaks and extraction attacks
+- **Cost attribution** — every token tracked by model, user, and feature
+- **Real-time alerts** — notifications when thresholds are breached
+- **Full audit logs** — searchable request history with CSV export
+- **Works with OpenAI, Anthropic, Gemini** — and any OpenAI-compatible API
+- **Streaming support** — transparent SSE passthrough
 
-```bash
-npm i -g vercel
-vercel --prod
-```
+---
 
-Set these environment variables in the Vercel dashboard:
+## Deploy on Vercel
 
-| Variable | Value |
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Sumit-Sheokand-ai/leashly)
+
+Set these environment variables in your Vercel dashboard:
+
+| Variable | How to generate |
 |---|---|
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://your-domain.com` |
+| `NEXTAUTH_URL` | Your app URL, e.g. `https://leashly.vercel.app` |
 | `ENCRYPTION_KEY` | `openssl rand -hex 16` |
+| `DATABASE_URL` | `file:./data/prod.db` |
 
-> **Note:** Vercel's filesystem is ephemeral — use a persistent SQLite host (Railway, Render) or swap `DATABASE_URL` for a Postgres connection string with `@prisma/adapter-pg`.
+---
 
-### Docker
+## Deploy with Docker
 
 ```bash
+git clone https://github.com/Sumit-Sheokand-ai/leashly.git
+cd leashly
 cp .env.example .env.production
-# edit .env.production with real secrets
+# fill in .env.production with your real secrets
 docker compose up -d
 ```
 
-The SQLite database is persisted in a Docker volume (`leashly_data`). To back it up:
-
-```bash
-docker compose exec leashly cp /app/data/prod.db /app/data/prod.db.bak
-```
-
-### Railway / Render / Fly.io
-
-Deploy as a standard Node.js app. Set the four environment variables and run:
-
-```bash
-npm run db:migrate   # runs prisma migrate deploy
-npm start
-```
-
 ---
 
-## Tech stack
+## Supported providers
 
-- **Next.js 14** (App Router, TypeScript)
-- **Prisma v5** + SQLite
-- **NextAuth.js v4** — JWT sessions, secure httpOnly cookies
-- **Recharts** — dashboard analytics
-- **Tailwind CSS v3** — dark theme design system
+| Provider | SDK compatible |
+|---|---|
+| OpenAI | Yes |
+| Anthropic | Yes |
+| Google Gemini | Yes |
+| Any OpenAI-compatible API | Yes |
 
 ---
 
 ## Security
 
-- Brute-force protection: 10 failed logins → 30-minute lockout
-- Timing-safe password checks (no email enumeration)
-- CSP, HSTS, X-Frame-Options, X-Content-Type-Options headers
-- All API keys encrypted with AES-256-CBC before storage
-- Auth middleware protects all dashboard and API routes
-
----
-
-## Project structure
-
-```
-app/
-  (auth)/          # login, register
-  (dashboard)/     # dashboard, keys, rules, logs, alerts
-  (marketing)/     # landing page
-  api/
-    proxy/[...path] # main proxy endpoint
-    keys/           # key CRUD
-    rules/          # rule CRUD
-    logs/           # log queries
-    alerts/         # alert CRUD
-    stats/          # dashboard aggregations
-    seed/           # demo data
-lib/
-  auth.ts           # NextAuth config
-  encryption.ts     # AES-256 encrypt/decrypt, key generation
-  rate-limit.ts     # token bucket + DB-backed hourly/daily checks
-  injection-filter.ts # prompt injection detection
-  cost.ts           # per-model cost calculation
-prisma/
-  schema.prisma     # User, ApiKey, Rule, RequestLog, Alert, Notification
-```
+- API keys encrypted at rest with AES-256-CBC
+- Brute-force protection on login (10 attempts → 30-min lockout)
+- Timing-safe auth (no email enumeration)
+- Secure httpOnly session cookies
+- CSP, HSTS, X-Frame-Options headers enforced
 
 ---
 

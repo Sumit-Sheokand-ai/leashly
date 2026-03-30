@@ -40,6 +40,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "4mb",
     },
+    // Allow build to continue even if font optimization fails
+    optimizePackageImports: ["next/font/google"],
   },
 };
 

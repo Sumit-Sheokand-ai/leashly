@@ -66,7 +66,7 @@ async function checkAlerts(userId: string, cost: number, flagged: boolean) {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   const startTime = Date.now();
 
@@ -163,7 +163,7 @@ export async function POST(
   }
 
   // 5. Build upstream URL
-  const pathSegments = params.path ?? [];
+  const { path: pathSegments } = await params;
   const provider = apiKeyRecord.provider;
   const baseUrl = PROVIDER_ENDPOINTS[provider] ?? PROVIDER_ENDPOINTS.openai;
 

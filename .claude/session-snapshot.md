@@ -7,14 +7,14 @@
 - None
 
 ### Where we left off
-- App fully renamed GateAI → Leashly; proxy key prefix `gai_` → `lsh_`; domain `api.leashly.dev`
-- README rewritten for production (deploy guides, SDK examples, security notes, project structure)
-- GitHub repo: https://github.com/Sumit-Sheokand-ai/leashly.git — pushed
-- .env was committed but only contained DATABASE_URL="file:./dev.db" — no real secrets leaked
-- Fix pending: `git rm --cached .env && git commit -m "Remove .env from tracking" && git push`
-- Real secrets are safe in .env.local which is gitignored
+- GitHub repo: https://github.com/Sumit-Sheokand-ai/leashly.git
 - App located at: C:\Users\sumit\OneDrive\Documents\GateAI\gateai-app\
-- Dev: npm run dev → http://localhost:3000
-- Vercel deploy: vercel --prod + set NEXTAUTH_SECRET, NEXTAUTH_URL, ENCRYPTION_KEY in dashboard
-- Secrets: NEXTAUTH_SECRET (openssl rand -base64 32), ENCRYPTION_KEY (openssl rand -hex 16)
+- README rewritten for production (user-facing only, no dev internals)
+- .env.example fixed — had real secrets in it, replaced with placeholders
+- SECRETS COMPROMISED: old NEXTAUTH_SECRET and ENCRYPTION_KEY were in .env.example and pushed to GitHub — user must regenerate both
+- Push was rejected (remote ahead); fix: `git pull origin main --rebase && git push origin main`
+- After push: regenerate secrets with `openssl rand -base64 32` and `openssl rand -hex 16`
+- Update new secrets in Vercel dashboard and local .env.local
+- NEXTAUTH_URL had typo in .env.example: "leashly.vercel.appi" — fixed to placeholder
 - Last production build passed with 0 errors, 23 routes
+- Proxy key prefix: `lsh_xxx`, domain: `api.leashly.dev`

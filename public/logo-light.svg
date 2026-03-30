@@ -5,18 +5,22 @@
       <stop offset="100%" stop-color="#009e52"/>
     </linearGradient>
   </defs>
+  <!-- Squircle container -->
   <rect x="0" y="2" width="40" height="40" rx="10" fill="#060606"/>
   <rect x="0" y="2" width="40" height="40" rx="10" fill="none" stroke="#1c1c1c" stroke-width="1"/>
+  <!-- Curved L body -->
   <path d="M10 12 Q10 9.5 12.5 9.5 L15 9.5 Q17.5 9.5 17.5 12 L17.5 31.5 Q17.5 35 21 35 L31 35 Q33.5 35 33.5 37.5 L33.5 39 Q33.5 41.5 31 41.5 L18 41.5 Q8 41.5 8 31 L8 12 Q8 9.5 10 9.5 Z" fill="url(#g)"/>
+  <!-- Ring -->
   <path d="M22.5 10 Q32 10 32 18.5 Q32 25.5 24 27 Q21.5 27.5 20 26.5 Q16.5 24 16.5 18.5 Q16.5 10 22.5 10 Z" fill="none" stroke="url(#g)" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Ring connector -->
   <path d="M22.5 27 Q22.5 29.5 22.5 31 Q22.5 32.5 21 32.5 L19 32.5" fill="none" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- White wordmark for dark backgrounds (sidebar, dark topbar) -->
+  <!-- Wordmark — dark color works on both light and dark backgrounds -->
   <text
     x="50" y="30"
     font-family="'SF Pro Display', -apple-system, 'Helvetica Neue', Arial, sans-serif"
     font-size="21"
     font-weight="800"
     letter-spacing="-1"
-    fill="#ffffff"
+    fill="#111111"
   >Leashly</text>
 </svg>

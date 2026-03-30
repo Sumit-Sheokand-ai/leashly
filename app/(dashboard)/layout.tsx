@@ -4,11 +4,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
@@ -16,22 +12,16 @@ export default async function DashboardLayout({
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     flaggedCount = await prisma.requestLog.count({
-      where: {
-        userId: user.id,
-        flagged: true,
-        timestamp: { gte: twentyFourHoursAgo },
-      },
+      where: { userId: user.id, flagged: true, timestamp: { gte: twentyFourHoursAgo } },
     });
-  } catch {
-    // DB not yet configured — silently fallback to 0
-  }
+  } catch {}
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a]">
+    <div className="flex min-h-screen bg-[#080808]">
       <Sidebar flaggedCount={flaggedCount} />
-      <div className="flex-1 ml-[240px] flex flex-col min-h-screen">
+      <div className="flex-1 ml-[220px] flex flex-col min-h-screen">
         <Topbar title="Leashly" />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 max-w-[1400px]">{children}</main>
       </div>
     </div>
   );

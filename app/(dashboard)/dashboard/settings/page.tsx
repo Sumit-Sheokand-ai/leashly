@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Mail, Shield, Bell, Key, ExternalLink, Copy, Check, AlertTriangle, RefreshCw } from "lucide-react";
+import { Mail, Key, Copy, Check, AlertTriangle, RefreshCw } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const inputCls = "w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#383838] focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed";
@@ -40,44 +40,39 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <button onClick={() => onChange(!checked)}
+    className={`relative w-10 h-6 rounded-full transition-colors ${checked ? "bg-[#00ff88]" : "bg-[#222222]"}`}>
+    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? "left-5" : "left-1"}`} />
+  </button>
+);
+
 export default function SettingsPage() {
   const [email, setEmail]   = useState("");
   const [userId, setUserId] = useState("");
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // Password change
-  const [pwForm, setPwForm]     = useState({ current: "", next: "", confirm: "" });
+  const [pwForm, setPwForm]     = useState({ next: "", confirm: "" });
   const [pwStatus, setPwStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [pwError, setPwError]   = useState("");
 
-  // Notification prefs (stored in localStorage for now)
   const [notifPrefs, setNotifPrefs] = useState({
-    spend_alerts: true,
-    rate_alerts: true,
-    injection_alerts: true,
-    weekly_digest: false,
+    spend_alerts: true, rate_alerts: true, injection_alerts: true, weekly_digest: false,
   });
 
-  // Danger zone
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteInput, setDeleteInput]             = useState("");
-  const [deleting, setDeleting]                   = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting]       = useState(false);
 
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setEmail(data.user.email ?? "");
-        setUserId(data.user.id);
-      }
+      if (data.user) { setEmail(data.user.email ?? ""); setUserId(data.user.id); }
       setLoadingUser(false);
     });
-
     const saved = localStorage.getItem("leashly_notif_prefs");
-    if (saved) {
-      try { setNotifPrefs(JSON.parse(saved)); } catch {}
-    }
+    if (saved) { try { setNotifPrefs(JSON.parse(saved)); } catch {} }
   }, []);
 
   function saveNotifPrefs(prefs: typeof notifPrefs) {
@@ -89,19 +84,12 @@ export default function SettingsPage() {
     e.preventDefault();
     setPwError("");
     if (!pwForm.next || !pwForm.confirm) { setPwError("Please fill in all fields"); return; }
-    if (pwForm.next.length < 8)          { setPwError("New password must be at least 8 characters"); return; }
+    if (pwForm.next.length < 8)          { setPwError("Password must be at least 8 characters"); return; }
     if (pwForm.next !== pwForm.confirm)  { setPwError("Passwords do not match"); return; }
-
     setPwStatus("saving");
     const { error } = await supabase.auth.updateUser({ password: pwForm.next });
-    if (error) {
-      setPwError(error.message);
-      setPwStatus("error");
-    } else {
-      setPwStatus("success");
-      setPwForm({ current: "", next: "", confirm: "" });
-      setTimeout(() => setPwStatus("idle"), 3000);
-    }
+    if (error) { setPwError(error.message); setPwStatus("error"); }
+    else { setPwStatus("success"); setPwForm({ next: "", confirm: "" }); setTimeout(() => setPwStatus("idle"), 3000); }
   }
 
   async function handleSignOut() {
@@ -112,17 +100,9 @@ export default function SettingsPage() {
   async function handleDeleteAccount() {
     if (deleteInput !== "DELETE") return;
     setDeleting(true);
-    // Sign out — actual account deletion requires a server-side admin call
     await supabase.auth.signOut();
     window.location.href = "/login";
   }
-
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-    <button onClick={() => onChange(!checked)}
-      className={`relative w-10 h-6 rounded-full transition-colors ${checked ? "bg-[#00ff88]" : "bg-[#222222]"}`}>
-      <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? "left-5" : "left-1"}`} />
-    </button>
-  );
 
   if (loadingUser) {
     return (
@@ -136,7 +116,7 @@ export default function SettingsPage() {
     <div className="space-y-5 max-w-2xl">
       <div>
         <h2 className="font-mono text-lg font-bold text-white">Settings</h2>
-        <p className="text-sm text-[#555555] mt-0.5">Manage your account, notifications, and security preferences</p>
+        <p className="text-sm text-[#555555] mt-0.5">Manage your account, notifications, and security</p>
       </div>
 
       {/* Account */}
@@ -147,7 +127,7 @@ export default function SettingsPage() {
             <Mail size={13} className="text-[#333333]" />
           </div>
         </Row>
-        <Row label="User ID" desc="Your unique identifier in the system">
+        <Row label="User ID" desc="Your unique identifier">
           <div className="flex items-center gap-1">
             <span className="text-xs text-[#444444] font-mono">{userId.slice(0, 8)}…{userId.slice(-4)}</span>
             <CopyButton text={userId} />
@@ -172,18 +152,14 @@ export default function SettingsPage() {
                 placeholder="Min. 8 characters" className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs text-[#555555] mb-1.5">Confirm new password</label>
+              <label className="block text-xs text-[#555555] mb-1.5">Confirm password</label>
               <input type="password" value={pwForm.confirm}
                 onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
                 placeholder="Repeat password" className={inputCls} />
             </div>
           </div>
-          {pwError && (
-            <p className="text-xs text-[#ff6666] flex items-center gap-1.5"><span>⚠</span>{pwError}</p>
-          )}
-          {pwStatus === "success" && (
-            <p className="text-xs text-[#00ff88] flex items-center gap-1.5"><Check size={12} />Password updated successfully</p>
-          )}
+          {pwError && <p className="text-xs text-[#ff6666] flex items-center gap-1.5"><span>⚠</span>{pwError}</p>}
+          {pwStatus === "success" && <p className="text-xs text-[#00ff88] flex items-center gap-1.5"><Check size={12} />Password updated successfully</p>}
           <button type="submit" disabled={pwStatus === "saving"}
             className="bg-[#00ff88] hover:bg-[#00dd77] text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
             {pwStatus === "saving" ? "Updating…" : "Update Password"}
@@ -194,32 +170,22 @@ export default function SettingsPage() {
       {/* Notifications */}
       <Section title="Notification Preferences" desc="Choose which events trigger email notifications">
         <Row label="Spend threshold alerts" desc="Email when a spend alert fires">
-          <Toggle checked={notifPrefs.spend_alerts}
-            onChange={v => saveNotifPrefs({ ...notifPrefs, spend_alerts: v })} />
+          <Toggle checked={notifPrefs.spend_alerts} onChange={v => saveNotifPrefs({ ...notifPrefs, spend_alerts: v })} />
         </Row>
         <Row label="Rate limit alerts" desc="Email when rate limits are exceeded">
-          <Toggle checked={notifPrefs.rate_alerts}
-            onChange={v => saveNotifPrefs({ ...notifPrefs, rate_alerts: v })} />
+          <Toggle checked={notifPrefs.rate_alerts} onChange={v => saveNotifPrefs({ ...notifPrefs, rate_alerts: v })} />
         </Row>
         <Row label="Injection detection alerts" desc="Email when prompt injection is detected">
-          <Toggle checked={notifPrefs.injection_alerts}
-            onChange={v => saveNotifPrefs({ ...notifPrefs, injection_alerts: v })} />
+          <Toggle checked={notifPrefs.injection_alerts} onChange={v => saveNotifPrefs({ ...notifPrefs, injection_alerts: v })} />
         </Row>
         <Row label="Weekly usage digest" desc="A weekly summary of your AI spend and usage">
-          <Toggle checked={notifPrefs.weekly_digest}
-            onChange={v => saveNotifPrefs({ ...notifPrefs, weekly_digest: v })} />
+          <Toggle checked={notifPrefs.weekly_digest} onChange={v => saveNotifPrefs({ ...notifPrefs, weekly_digest: v })} />
         </Row>
       </Section>
 
       {/* Security */}
       <Section title="Security" desc="Protect your account and API keys">
-        <Row label="Two-factor authentication" desc="Add an extra layer of security to your login">
-          <a href="https://supabase.com" target="_blank" rel="noopener"
-            className="flex items-center gap-1.5 text-xs text-[#888888] hover:text-white border border-[#222222] hover:border-[#333333] px-3 py-1.5 rounded-lg transition-all">
-            Configure <ExternalLink size={11} />
-          </a>
-        </Row>
-        <Row label="Active sessions" desc="View and revoke active login sessions">
+        <Row label="Active sessions" desc="Sign out of all devices and revoke active sessions">
           <button onClick={handleSignOut}
             className="text-xs text-[#888888] hover:text-white border border-[#222222] hover:border-[#333333] px-3 py-1.5 rounded-lg transition-all">
             Revoke all sessions
@@ -260,15 +226,15 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div>
-                <label className="block text-xs text-[#555555] mb-1.5">Type <span className="font-mono text-[#888888]">DELETE</span> to confirm</label>
+                <label className="block text-xs text-[#555555] mb-1.5">
+                  Type <span className="font-mono text-[#888888]">DELETE</span> to confirm
+                </label>
                 <input value={deleteInput} onChange={e => setDeleteInput(e.target.value)}
                   placeholder="DELETE"
                   className="w-full max-w-xs bg-[#0a0a0a] border border-[#2a1515] rounded-lg px-3 py-2 text-sm text-white placeholder-[#383838] focus:outline-none focus:border-[#ff4444]/50 transition-all font-mono" />
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteInput !== "DELETE" || deleting}
+                <button onClick={handleDeleteAccount} disabled={deleteInput !== "DELETE" || deleting}
                   className="bg-[#ff4444] hover:bg-[#dd3333] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   {deleting ? "Deleting…" : "Permanently Delete Account"}
                 </button>

@@ -1,23 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
   const supabase = createSupabaseBrowserClient();
 
+  useEffect(() => {
+    if (searchParams.get("registered") === "1") {
+      setSuccess("Account created! Check your email to confirm, then sign in.");
+    }
+    if (searchParams.get("error") === "auth_failed") {
+      setError("Authentication failed. Please try again.");
+    }
+    if (searchParams.get("error") === "missing_code") {
+      setError("Invalid login link. Please try again.");
+    }
+  }, [searchParams]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccess("");
     if (!email || !password) { setError("Email and password are required"); return; }
 
     setLoading(true);
@@ -25,7 +40,11 @@ export default function LoginPage() {
     setLoading(false);
 
     if (signInError) {
-      setError("Invalid email or password");
+      if (signInError.message.includes("Email not confirmed")) {
+        setError("Please confirm your email before signing in. Check your inbox.");
+      } else {
+        setError("Invalid email or password");
+      }
     } else {
       router.push("/dashboard");
       router.refresh();
@@ -97,6 +116,9 @@ export default function LoginPage() {
           />
         </div>
 
+        {success && (
+          <div className="bg-[#00ff88]/10 border border-[#00ff88]/30 rounded-lg px-3 py-2.5 text-sm text-[#00ff88]">{success}</div>
+        )}
         {error && (
           <div className="bg-[#ff4444]/10 border border-[#ff4444]/30 rounded-lg px-3 py-2.5 text-sm text-[#ff4444]">{error}</div>
         )}

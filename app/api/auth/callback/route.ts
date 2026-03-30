@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import { sendWelcomeEmail } from "@/lib/resend";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -32,6 +30,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
+    console.error("Auth callback error:", error?.message);
     return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
@@ -41,17 +40,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=no_email`);
   }
 
-  // Create Prisma user on first login
-  const existing = await prisma.user.findUnique({ where: { id: supabaseId } });
+  // Sync user to Prisma DB — wrapped in try/catch so auth still works even if DB is misconfigured
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const existing = await prisma.user.findUnique({ where: { id: supabaseId } });
+    await prisma.user.upsert({
+      where: { id: supabaseId },
+      update: {},
+      create: { id: supabaseId, email },
+    });
 
-  await prisma.user.upsert({
-    where: { id: supabaseId },
-    update: {},
-    create: { id: supabaseId, email },
-  });
-
-  if (!existing) {
-    await sendWelcomeEmail(email).catch(() => {});
+    if (!existing) {
+      const { sendWelcomeEmail } = await import("@/lib/resend");
+      await sendWelcomeEmail(email).catch((e) =>
+        console.error("Welcome email failed:", e)
+      );
+    }
+  } catch (dbError) {
+    // Log but don't block auth — user can still access app even if DB sync fails
+    console.error("DB sync error in auth callback:", dbError);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

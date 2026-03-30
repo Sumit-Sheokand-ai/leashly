@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// Font variables are defined via CSS custom properties in globals.css
-// Using system fonts with Google Fonts as progressive enhancement
-
 export const metadata: Metadata = {
   title: "Leashly — AI Cost Control & Abuse Prevention Proxy",
   description:
     "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection between your app and any LLM provider.",
+  icons: {
+    icon: "/logo-icon.svg",
+    shortcut: "/logo-icon.svg",
+  },
   openGraph: {
     title: "Leashly — AI Cost Control & Abuse Prevention Proxy",
     description: "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection.",

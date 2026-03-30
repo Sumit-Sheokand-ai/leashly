@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -28,9 +29,14 @@ export function Sidebar({ flaggedCount = 0 }: { flaggedCount?: number }) {
     <aside className="fixed left-0 top-0 h-full w-[240px] bg-[#111111] border-r border-[#1f1f1f] flex flex-col z-40">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-[#1f1f1f]">
-        <Link href="/dashboard" className="flex items-center gap-0">
-          <span className="font-mono text-xl font-bold text-[#00ff88]">Leash</span>
-          <span className="font-mono text-xl font-bold text-white">ly</span>
+        <Link href="/dashboard" className="flex items-center">
+          <Image
+            src="/logo.svg"
+            alt="Leashly"
+            width={120}
+            height={30}
+            priority
+          />
         </Link>
       </div>
 

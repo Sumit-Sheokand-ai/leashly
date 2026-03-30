@@ -12,14 +12,19 @@ export default async function DashboardLayout({
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const flaggedCount = await prisma.requestLog.count({
-    where: {
-      userId: user.id,
-      flagged: true,
-      timestamp: { gte: twentyFourHoursAgo },
-    },
-  });
+  let flaggedCount = 0;
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    flaggedCount = await prisma.requestLog.count({
+      where: {
+        userId: user.id,
+        flagged: true,
+        timestamp: { gte: twentyFourHoursAgo },
+      },
+    });
+  } catch {
+    // DB not yet configured — silently fallback to 0
+  }
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">

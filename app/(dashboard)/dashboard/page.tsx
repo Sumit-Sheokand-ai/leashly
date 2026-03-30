@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { RequestsChart } from "@/components/charts/requests-chart";
 import { CostChart } from "@/components/charts/cost-chart";
-import { DollarSign, Activity, ShieldAlert, Shield, ExternalLink, RefreshCw, Database } from "lucide-react";
+import { DollarSign, Activity, ShieldAlert, Shield, ExternalLink, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface Stats {
@@ -55,30 +55,31 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
   const [hasData, setHasData] = useState(false);
 
   async function loadData() {
     setLoading(true);
     try {
       const [sRes, lRes] = await Promise.all([
-        fetch("/api/stats"), fetch("/api/logs?page=1"),
+        fetch("/api/stats"),
+        fetch("/api/logs?page=1"),
       ]);
-      const s = await sRes.json();
-      const l = await lRes.json();
-      setStats(s);
-      setLogs(l.logs ?? []);
-      setHasData(l.total > 0);
+
+      if (sRes.ok) {
+        const s = await sRes.json();
+        setStats(s);
+      }
+
+      if (lRes.ok) {
+        const l = await lRes.json();
+        setLogs(l.logs ?? []);
+        setHasData((l.total ?? 0) > 0);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
     } finally {
       setLoading(false);
     }
-  }
-
-  async function seedData() {
-    setSeeding(true);
-    await fetch("/api/seed", { method: "POST" });
-    setSeeding(false);
-    await loadData();
   }
 
   useEffect(() => { loadData(); }, []);
@@ -94,22 +95,18 @@ export default function DashboardPage() {
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-        <Database size={48} className="text-[#333333]" />
+        <div className="w-12 h-12 rounded-xl bg-[#111111] border border-[#1f1f1f] flex items-center justify-center">
+          <Activity size={24} className="text-[#333333]" />
+        </div>
         <div>
-          <h2 className="font-mono text-xl text-white mb-2">No data yet</h2>
+          <h2 className="font-mono text-xl text-white mb-2">No requests yet</h2>
           <p className="text-[#666666] text-sm mb-6 max-w-sm">
-            Add your first API key to start proxying requests, or load demo data to explore.
+            Add your first API key, then point your app at the Leashly proxy to start tracking usage.
           </p>
-          <div className="flex gap-3 justify-center">
-            <Link href="/dashboard/keys"
-              className="bg-[#00ff88] hover:bg-[#00cc6e] text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              Add API Key
-            </Link>
-            <button onClick={seedData} disabled={seeding}
-              className="border border-[#1f1f1f] text-[#f0f0f0] hover:border-[#00ff88] text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
-              {seeding ? "Loading..." : "Load demo data"}
-            </button>
-          </div>
+          <Link href="/dashboard/keys"
+            className="bg-[#00ff88] hover:bg-[#00cc6e] text-black text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+            Add API Key →
+          </Link>
         </div>
       </div>
     );
@@ -122,16 +119,10 @@ export default function DashboardPage() {
           <h2 className="font-mono text-lg font-bold text-white">Overview</h2>
           <p className="text-sm text-[#666666]">Last 24 hours</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={seedData} disabled={seeding}
-            className="text-xs border border-[#1f1f1f] text-[#666666] hover:text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-            {seeding ? "Seeding..." : "Seed data"}
-          </button>
-          <button onClick={loadData}
-            className="text-xs border border-[#1f1f1f] text-[#666666] hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
-            <RefreshCw size={12} /> Refresh
-          </button>
-        </div>
+        <button onClick={loadData}
+          className="text-xs border border-[#1f1f1f] text-[#666666] hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+          <RefreshCw size={12} /> Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

@@ -26,15 +26,19 @@ export async function GET(req: NextRequest) {
     where.timestamp = timestamp;
   }
 
-  const [logs, total] = await Promise.all([
-    prisma.requestLog.findMany({
-      where,
-      orderBy: { timestamp: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.requestLog.count({ where }),
-  ]);
-
-  return NextResponse.json({ logs, total, page, pageSize });
+  try {
+    const [logs, total] = await Promise.all([
+      prisma.requestLog.findMany({
+        where,
+        orderBy: { timestamp: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.requestLog.count({ where }),
+    ]);
+    return NextResponse.json({ logs, total, page, pageSize });
+  } catch (err) {
+    console.error("Logs API error:", err);
+    return NextResponse.json({ logs: [], total: 0, page, pageSize });
+  }
 }

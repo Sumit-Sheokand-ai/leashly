@@ -36,3 +36,16 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# SQLite databases — never commit
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/data/
+
+# Env files — use .env.example as template
+.env
+.env.local
+.env.production
+.env.development

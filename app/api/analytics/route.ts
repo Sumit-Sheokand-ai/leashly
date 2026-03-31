@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const user = await getSessionUser();
+  const user = await getSessionUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = req.nextUrl;
@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
       dayMap[key] = { spend: 0, requests: 0 };
     }
     for (const log of logs) {
-      const key = new Date(log.timestamp).toISOString().slice(0, 10);
+      const timestamp = log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp);
+      if (Number.isNaN(timestamp.getTime())) continue;
+      const key = timestamp.toISOString().slice(0, 10);
       if (dayMap[key]) { dayMap[key].spend += log.totalCost; dayMap[key].requests++; }
     }
     const daily = Object.entries(dayMap).map(([date, v]) => ({ date, ...v }));
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
       if (!modelMap[log.model]) modelMap[log.model] = { cost: 0, requests: 0, tokens: 0 };
       modelMap[log.model].cost += log.totalCost;
       modelMap[log.model].requests++;
-      modelMap[log.model].tokens += log.promptTokens + log.completionTokens;
+      modelMap[log.model].tokens += (log.promptTokens ?? 0) + (log.completionTokens ?? 0);
     }
     const byModel = Object.entries(modelMap)
       .map(([model, v]) => ({ model, ...v }))
@@ -75,7 +77,9 @@ export async function GET(req: NextRequest) {
       if (!keyMap[log.apiKeyId]) keyMap[log.apiKeyId] = { cost: 0, requests: 0, lastUsed: null };
       keyMap[log.apiKeyId].cost += log.totalCost;
       keyMap[log.apiKeyId].requests++;
-      const ts = log.timestamp.toISOString();
+      const timestamp = log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp);
+      if (Number.isNaN(timestamp.getTime())) continue;
+      const ts = timestamp.toISOString();
       if (!keyMap[log.apiKeyId].lastUsed || ts > keyMap[log.apiKeyId].lastUsed!) {
         keyMap[log.apiKeyId].lastUsed = ts;
       }
@@ -90,7 +94,7 @@ export async function GET(req: NextRequest) {
     // Totals
     const totalCost = logs.reduce((s, l) => s + l.totalCost, 0);
     const totalRequests = logs.length;
-    const totalTokens = logs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
+    const totalTokens = logs.reduce((s, l) => s + (l.promptTokens ?? 0) + (l.completionTokens ?? 0), 0);
     const flaggedCount = logs.filter(l => l.flagged).length;
     const avgLatency = logs.length
       ? Math.round(logs.reduce((s, l) => s + l.durationMs, 0) / logs.length)

@@ -9,28 +9,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No signature" }, { status: 400 });
   }
 
-  let event: {
-    type: string;
-    data: {
-      object: {
-        customer?: string;
-        status?: string;
-        id?: string;
-        customer_email?: string;
-      };
-    };
-  };
+  let event: { type: string; data: { object: Record<string, unknown> } };
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2024-12-18.acacia",
-    });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     event = stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    ) as unknown as { type: string; data: { object: Record<string, unknown> } };
   } catch (err) {
     console.error("Stripe webhook signature failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -42,7 +30,7 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated": {
         const sub = event.data.object;
         const customerId = sub.customer as string;
-        const status = sub.status;
+        const status = sub.status as string | undefined;
         const subscriptionId = sub.id as string;
         if (status === "active" || status === "trialing") {
           await prisma.user.updateMany({

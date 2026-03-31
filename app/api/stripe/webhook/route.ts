@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -9,23 +10,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No signature" }, { status: 400 });
   }
 
-  let event: {
-    type: string;
-    data: {
-      object: {
-        customer?: string;
-        status?: string;
-        id?: string;
-        customer_email?: string;
-      };
-    };
-  };
+  let event: Stripe.Event;
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2024-12-18.acacia",
-    });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     event = stripe.webhooks.constructEvent(
       body,
       signature,

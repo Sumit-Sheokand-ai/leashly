@@ -20,7 +20,6 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' blob: data: https:",
-      // Allow Supabase API + realtime, Google OAuth, and localhost dev
       `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com`,
       "frame-src https://accounts.google.com",
       "frame-ancestors 'none'",
@@ -29,13 +28,13 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  output: "standalone",
   poweredByHeader: false,
   compress: true,
   async headers() {
     return [
       {
-        source: "/(.*)",
+        // Apply security headers to all pages EXCEPT sitemap and robots
+        source: "/((?!sitemap.xml|robots.txt).*)",
         headers: securityHeaders,
       },
     ];

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated": {
         const sub = event.data.object;
         const customerId = sub.customer as string;
-        const status = sub.status as string | undefined;
+        const status = sub.status;
         const subscriptionId = sub.id as string;
         if (status === "active" || status === "trialing") {
           await prisma.user.updateMany({

@@ -9,9 +9,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id  // Supabase auth user UUID
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id                   String   @id
+  email                String   @unique
+  plan                 String   @default("free")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  createdAt            DateTime @default(now())
 
   apiKeys       ApiKey[]
   rules         Rule[]
@@ -88,6 +91,3 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-
-

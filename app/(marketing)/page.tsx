@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Shield, BarChart2, Zap, ChevronDown, Menu, X } from "lucide-react";
 
+const STRIPE_PRO_LINK = "https://buy.stripe.com/3cI28t53XdWv2hH5WL9Ve09";
+
 /* ─── Typewriter hook ─── */
 function useTypewriter(lines: string[], speed = 35) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);
-
   useEffect(() => {
     if (currentLine >= lines.length) return;
     if (currentChar < lines[currentLine].length) {
@@ -27,11 +28,10 @@ function useTypewriter(lines: string[], speed = 35) {
       return () => clearTimeout(t);
     }
   }, [currentLine, currentChar, lines, speed]);
-
   return displayed;
 }
 
-/* ─── Scroll fade-in hook ─── */
+/* ─── Scroll fade-in ─── */
 function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -56,28 +56,26 @@ function FadeSection({ children, className = "" }: { children: React.ReactNode; 
   );
 }
 
-/* ─── Code block with copy ─── */
+/* ─── Code block ─── */
 function CodeBlock({ code, lang = "js" }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);
   const lines = code.trim().split("\n");
+  const KEYWORDS = new Set(["import", "from", "const", "await", "new", "return", "os"]);
 
-  function highlight(line: string, l: string) {
-    if (l === "bash") return <span className="text-[#f0f0f0]">{line}</span>;
-    const KEYWORDS = new Set(["import", "from", "const", "await", "new", "return", "os"]);
+  function highlight(line: string) {
+    if (lang === "bash") return <span className="text-[#f0f0f0]">{line}</span>;
     const parts = line.split(/(\/\/.*$|"[^"]*"|'[^']*'|`[^`]*`)/);
     return parts.map((part, i) => {
       if (!part) return null;
-      if (part.startsWith("//")) return <span key={i} className="text-[#00ff88]">{part}</span>;
+      if (part.startsWith("//")) return <span key={i} className="text-[#555555] italic">{part}</span>;
       if ((part.startsWith('"') || part.startsWith("'") || part.startsWith("`")) && part.length > 1)
         return <span key={i} className="text-[#ffaa00]">{part}</span>;
-      // highlight keywords within the segment
       const words = part.split(/(\b(?:import|from|const|await|new|return|os)\b)/);
       return (
         <span key={i}>
           {words.map((w, j) =>
-            w && KEYWORDS.has(w)
-              ? <span key={j} className="text-[#00aaff]">{w}</span>
-              : w ? <span key={j}>{w}</span> : null
+            w && KEYWORDS.has(w) ? <span key={j} className="text-[#00aaff]">{w}</span>
+            : w ? <span key={j}>{w}</span> : null
           )}
         </span>
       );
@@ -88,10 +86,8 @@ function CodeBlock({ code, lang = "js" }: { code: string; lang?: string }) {
     <div className="relative bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1f1f1f]">
         <span className="text-xs text-[#444444] font-mono">{lang}</span>
-        <button
-          onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-          className="text-xs text-[#666666] hover:text-[#00ff88] transition-colors font-mono"
-        >
+        <button onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+          className="text-xs text-[#666666] hover:text-[#00ff88] transition-colors font-mono">
           {copied ? "✓ copied" : "copy"}
         </button>
       </div>
@@ -101,7 +97,7 @@ function CodeBlock({ code, lang = "js" }: { code: string; lang?: string }) {
             {lines.map((line, i) => (
               <tr key={i}>
                 <td className="text-[#333333] text-right pr-4 select-none w-8 text-xs">{i + 1}</td>
-                <td className="text-[#f0f0f0] whitespace-pre">{highlight(line, lang)}</td>
+                <td className="text-[#f0f0f0] whitespace-pre">{highlight(line)}</td>
               </tr>
             ))}
           </tbody>
@@ -111,13 +107,13 @@ function CodeBlock({ code, lang = "js" }: { code: string; lang?: string }) {
   );
 }
 
-/* ─── FAQ Accordion ─── */
+/* ─── FAQ ─── */
 const FAQS = [
   { q: "Does Leashly add latency?", a: "No. The proxy runs in the same region as your LLM provider. Typical overhead is under 5ms." },
   { q: "Is my API key safe?", a: "Yes. Keys are encrypted at rest with AES-256. We never log or expose them in any response." },
   { q: "Does it work with streaming?", a: "Yes. Leashly fully supports server-sent events (SSE) streaming responses, passing them through transparently." },
   { q: "What providers do you support?", a: "OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint. Add custom endpoints in the dashboard." },
-  { q: "What happens when I hit a spend cap?", a: "Leashly returns a 429 with a clear JSON error: { error: { message: 'Daily spend cap exceeded', type: 'rate_limit_error' } }. Your app gets a clean error to handle." },
+  { q: "What happens when I hit a spend cap?", a: 'Leashly returns a 429 with a clear JSON error: { error: { message: "Daily spend cap exceeded", type: "rate_limit_error" } }. Your app gets a clean error to handle.' },
   { q: "Can I self-host it?", a: "Yes. Leashly is open-source. Deploy it on Vercel, Railway, or any Node.js host in minutes with a single .env change." },
 ];
 
@@ -138,45 +134,36 @@ function Accordion({ q, a }: { q: string; a: string }) {
 }
 
 const CODE_EXAMPLES: Record<string, { lang: string; code: string }> = {
-  "Node.js": {
-    lang: "js",
-    code: `import OpenAI from 'openai';
+  "Node.js": { lang: "js", code: `import OpenAI from 'openai';
 
 const client = new OpenAI({
   apiKey: process.env.LEASHLY_KEY,      // your lsh_xxx key
-  baseURL: 'https://api.leashly.dev/proxy',
+  baseURL: 'https://leashly.dev/api/proxy',
 });
 
 const response = await client.chat.completions.create({
   model: 'gpt-4o',
   messages: [{ role: 'user', content: 'Hello!' }],
-});`,
-  },
-  Python: {
-    lang: "python",
-    code: `from openai import OpenAI
+});` },
+  Python: { lang: "bash", code: `from openai import OpenAI
 import os
 
 client = OpenAI(
     api_key=os.environ["LEASHLY_KEY"],
-    base_url="https://api.leashly.dev/proxy",
+    base_url="https://leashly.dev/api/proxy",
 )
 
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[{"role": "user", "content": "Hello!"}],
-)`,
-  },
-  cURL: {
-    lang: "bash",
-    code: `curl https://api.leashly.dev/proxy/chat/completions \\
+)` },
+  cURL: { lang: "bash", code: `curl https://leashly.dev/api/proxy/chat/completions \\
   -H "Authorization: Bearer $LEASHLY_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "gpt-4o",
     "messages": [{"role": "user", "content": "Hello!"}]
-  }'`,
-  },
+  }'` },
 };
 
 const TERMINAL_LINES = [
@@ -196,7 +183,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 // After — that's it.
 const openai = new OpenAI({
   apiKey: "lsh_xxxxxxxxxxxx",
-  baseURL: "https://api.leashly.dev/proxy"
+  baseURL: "https://leashly.dev/api/proxy"
 })`;
 
 export default function LandingPage() {
@@ -213,14 +200,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0]">
-      {/* Dot grid background */}
+      {/* Dot grid */}
       <div className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, #1f1f1f 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-          opacity: 0.5,
-        }}
-      />
+        style={{ backgroundImage: "radial-gradient(circle, #1f1f1f 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.5 }} />
 
       {/* ─── NAVBAR ─── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled ? "bg-[#0a0a0a]/90 backdrop-blur-md border-b border-[#1f1f1f]" : "bg-transparent"}`}>
@@ -229,10 +211,10 @@ export default function LandingPage() {
             <span className="text-[#00ff88]">Leash</span><span className="text-white">ly</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#how-it-works" className="text-sm text-[#999999] hover:text-white transition-colors">Docs</a>
+            <Link href="/docs" className="text-sm text-[#999999] hover:text-white transition-colors">Docs</Link>
+            <a href="#pricing" className="text-sm text-[#999999] hover:text-white transition-colors">Pricing</a>
             <Link href="/login" className="text-sm text-[#999999] hover:text-white transition-colors">Sign in</Link>
-            <Link href="/register"
-              className="bg-[#00ff88] hover:bg-[#00cc6e] text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+            <Link href="/register" className="bg-[#00ff88] hover:bg-[#00cc6e] text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
               Get started free
             </Link>
           </div>
@@ -242,7 +224,8 @@ export default function LandingPage() {
         </div>
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#111111] border-b border-[#1f1f1f] px-6 py-4 space-y-4">
-            <a href="#how-it-works" className="block text-sm text-[#999999]">Docs</a>
+            <Link href="/docs" className="block text-sm text-[#999999]">Docs</Link>
+            <a href="#pricing" className="block text-sm text-[#999999]">Pricing</a>
             <Link href="/login" className="block text-sm text-[#999999]">Sign in</Link>
             <Link href="/register" className="block bg-[#00ff88] text-black text-sm font-semibold px-4 py-2 rounded-lg text-center">
               Get started free
@@ -252,27 +235,22 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── HERO ─── */}
-      <section className="relative pt-36 pb-24 px-6 max-w-5xl mx-auto text-center" id="hero">
+      <section className="relative pt-36 pb-24 px-6 max-w-5xl mx-auto text-center">
         <h1 className="font-mono text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
-          Stop flying blind<br />
-          <span className="text-[#00ff88]">on AI costs.</span>
+          Stop flying blind<br /><span className="text-[#00ff88]">on AI costs.</span>
         </h1>
         <p className="text-xl text-[#999999] max-w-2xl mx-auto mb-8 leading-relaxed">
           Leashly sits between your app and any LLM provider. Enforce spend caps, rate limits, and prompt injection protection — in one env var change.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-          <Link href="/register"
-            className="bg-[#00ff88] hover:bg-[#00cc6e] text-black font-semibold px-6 py-3 rounded-lg text-base transition-colors">
+          <Link href="/register" className="bg-[#00ff88] hover:bg-[#00cc6e] text-black font-semibold px-6 py-3 rounded-lg text-base transition-colors">
             Get started free →
           </Link>
-          <a href="#how-it-works"
-            className="border border-[#1f1f1f] hover:border-[#00ff88] text-[#f0f0f0] px-6 py-3 rounded-lg text-base transition-colors">
-            See how it works
-          </a>
+          <Link href="/docs" className="border border-[#1f1f1f] hover:border-[#00ff88] text-[#f0f0f0] px-6 py-3 rounded-lg text-base transition-colors">
+            Read the docs
+          </Link>
         </div>
-        <p className="text-sm text-[#444444] mb-10 font-mono">
-          No credit card required · 5 minute setup · Works with OpenAI, Anthropic, Gemini
-        </p>
+        <p className="text-sm text-[#444444] mb-10 font-mono">No credit card required · 5 minute setup · Works with OpenAI, Anthropic, Gemini</p>
         <div className="max-w-2xl mx-auto">
           <CodeBlock code={HERO_CODE} lang="js" />
         </div>
@@ -281,7 +259,7 @@ export default function LandingPage() {
       {/* ─── SOCIAL PROOF ─── */}
       <FadeSection>
         <div className="border-y border-[#1f1f1f] py-5 px-6">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4">
             <span className="text-sm text-[#444444] font-mono sm:mr-8">Protecting AI spend for 200+ teams</span>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
               {["Acme Corp", "Buildfast", "NovaMind", "Layerstack", "Shipyard"].map((name, i, arr) => (
@@ -300,8 +278,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="font-mono text-3xl md:text-4xl font-bold text-white leading-tight mb-6">
-                One abusive user.<br />One overnight script.<br />
-                <span className="text-[#ff4444]">$40,000 bill.</span>
+                One abusive user.<br />One overnight script.<br /><span className="text-[#ff4444]">$40,000 bill.</span>
               </h2>
               <p className="text-[#999999] leading-relaxed mb-4">
                 There are no guardrails between your app and the LLM API. One misconfigured feature, one abusive user, or one runaway script — and your next invoice is unrecognizable.
@@ -341,14 +318,13 @@ export default function LandingPage() {
         <section className="py-24 px-6 max-w-6xl mx-auto" id="how-it-works">
           <h2 className="font-mono text-3xl md:text-4xl font-bold text-white text-center mb-4">One proxy. Full control.</h2>
           <p className="text-[#666666] text-center mb-16 max-w-xl mx-auto">The same interface your SDK already uses. Zero refactoring.</p>
-
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             {[
               { icon: Shield, color: "#ff4444", title: "Enforce rules", desc: "Set spend caps per user, per day, per model. Rate limits that actually work. Injection filter that catches attacks before they hit the model." },
               { icon: BarChart2, color: "#00aaff", title: "See everything", desc: "Every token, every request, every dollar — attributed to the exact user, feature, and model that spent it. No more mystery invoices." },
               { icon: Zap, color: "#00ff88", title: "Zero code changes", desc: "Change one environment variable. Leashly is fully compatible with the OpenAI SDK. Your app doesn't know the difference." },
             ].map(({ icon: Icon, color, title, desc }) => (
-              <div key={title} className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-6 card-glow">
+              <div key={title} className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-6">
                 <div className="p-3 rounded-lg w-fit mb-4" style={{ background: `${color}18` }}>
                   <Icon size={20} style={{ color }} />
                 </div>
@@ -357,18 +333,16 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-
-          {/* Architecture diagram */}
           <div className="flex items-center justify-center gap-0 flex-wrap">
             {[
-              { label: "Your App", sub: "OpenAI SDK", color: "#1f1f1f" },
+              { label: "Your App", sub: "OpenAI SDK" },
               null,
-              { label: "Leashly Proxy", sub: "rate limits · spend caps · injection filter", color: "#00ff8820", border: "#00ff88" },
+              { label: "Leashly Proxy", sub: "rate limits · spend caps · injection filter", highlight: true },
               null,
-              { label: "LLM Provider", sub: "OpenAI / Anthropic / Gemini", color: "#1f1f1f" },
+              { label: "LLM Provider", sub: "OpenAI / Anthropic / Gemini" },
             ].map((item, i) => {
               if (!item) return (
-                <div key={i} className="flex items-center gap-0 mx-2">
+                <div key={i} className="flex items-center mx-2">
                   <div className="w-8 h-px bg-[#333333]" />
                   <div className="text-[#333333] text-lg">→</div>
                   <div className="w-8 h-px bg-[#333333]" />
@@ -376,9 +350,9 @@ export default function LandingPage() {
               );
               return (
                 <div key={i} className="border rounded-xl px-5 py-3 text-center"
-                  style={{ background: item.color, borderColor: (item as { border?: string }).border ?? "#1f1f1f" }}>
+                  style={{ background: item.highlight ? "#00ff8820" : "#1a1a1a", borderColor: item.highlight ? "#00ff88" : "#1f1f1f" }}>
                   <div className="font-mono font-bold text-white text-sm">{item.label}</div>
-                  <div className="text-xs mt-1" style={{ color: (item as { border?: string }).border ?? "#666666" }}>{item.sub}</div>
+                  <div className="text-xs mt-1" style={{ color: item.highlight ? "#00ff88" : "#666666" }}>{item.sub}</div>
                 </div>
               );
             })}
@@ -386,7 +360,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── FEATURES GRID ─── */}
+      {/* ─── FEATURES ─── */}
       <FadeSection>
         <section className="py-24 px-6 max-w-6xl mx-auto">
           <h2 className="font-mono text-3xl md:text-4xl font-bold text-white text-center mb-4">Everything you need to ship AI safely</h2>
@@ -400,7 +374,7 @@ export default function LandingPage() {
               { icon: "🔔", title: "Real-time alerts", desc: "Email and in-app notifications when spend thresholds or rate limits are hit." },
               { icon: "📋", title: "Full audit logs", desc: "Every request logged with tokens, cost, duration, model, and flag reason." },
             ].map(({ icon, title, desc }) => (
-              <div key={title} className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-5 card-glow">
+              <div key={title} className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-5">
                 <div className="text-2xl mb-3">{icon}</div>
                 <h3 className="font-mono font-bold text-white mb-2 text-sm">{title}</h3>
                 <p className="text-xs text-[#999999] leading-relaxed">{desc}</p>
@@ -410,7 +384,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── CODE INTEGRATION ─── */}
+      {/* ─── CODE EXAMPLES ─── */}
       <FadeSection>
         <section className="py-24 px-6 max-w-4xl mx-auto">
           <h2 className="font-mono text-3xl md:text-4xl font-bold text-white text-center mb-4">Works with every LLM SDK</h2>
@@ -429,54 +403,59 @@ export default function LandingPage() {
 
       {/* ─── PRICING ─── */}
       <FadeSection>
-        <section className="py-24 px-6 max-w-5xl mx-auto" id="pricing">
+        <section className="py-24 px-6 max-w-4xl mx-auto" id="pricing">
           <h2 className="font-mono text-3xl md:text-4xl font-bold text-white text-center mb-4">Simple pricing.</h2>
-          <p className="text-[#666666] text-center mb-12">Saves itself in week one.</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                name: "Free", price: "$0", period: "/mo", highlight: false,
-                features: ["10,000 proxied requests/mo", "1 API key", "Basic rate limiting", "7-day log retention", "Community support"],
-                cta: "Get started free", href: "/register",
-              },
-              {
-                name: "Pro", price: "$29", period: "/mo", highlight: true,
-                features: ["Unlimited requests", "10 API keys", "All rule types", "90-day log retention", "Email alerts", "Priority support"],
-                cta: "Start free trial", href: "/register",
-              },
-              {
-                name: "Team", price: "$99", period: "/mo", highlight: false,
-                features: ["Everything in Pro", "Unlimited API keys", "5 team seats", "SSO", "Dedicated Slack", "SLA guarantee"],
-                cta: "Contact sales", href: "/register",
-              },
-            ].map(({ name, price, period, highlight, features, cta, href }) => (
-              <div key={name} className={`rounded-xl p-6 border ${highlight ? "border-[#00ff88] bg-[#00ff88]/5" : "border-[#1f1f1f] bg-[#111111]"} relative`}>
-                {highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00ff88] text-black text-xs font-bold px-3 py-1 rounded-full font-mono">
-                    Most popular
-                  </div>
-                )}
-                <div className="mb-4">
-                  <h3 className="font-mono font-bold text-white mb-1">{name}</h3>
-                  <div className="flex items-end gap-1">
-                    <span className="font-mono text-3xl font-bold text-white">{price}</span>
-                    <span className="text-[#666666] text-sm mb-1">{period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-2.5 mb-6">
-                  {features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-[#999999]">
-                      <span className="text-[#00ff88] mt-0.5 shrink-0">✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={href}
-                  className={`block w-full text-center py-2.5 rounded-lg text-sm font-semibold transition-colors ${highlight ? "bg-[#00ff88] hover:bg-[#00cc6e] text-black" : "border border-[#1f1f1f] hover:border-[#00ff88] text-[#f0f0f0]"}`}>
-                  {cta}
-                </Link>
+          <p className="text-[#666666] text-center mb-12">Saves itself in the first week.</p>
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            {/* Free */}
+            <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-6">
+              <h3 className="font-mono font-bold text-white mb-1">Free</h3>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-mono text-3xl font-bold text-white">$0</span>
+                <span className="text-[#666666] text-sm mb-1">/mo</span>
               </div>
-            ))}
+              <p className="text-xs text-[#555555] mb-5">Forever free for indie devs</p>
+              <ul className="space-y-2.5 mb-6">
+                {["10,000 proxied requests/mo", "1 API key", "Basic rate limiting", "7-day log retention", "Community support"].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-[#999999]">
+                    <span className="text-[#00ff88] mt-0.5 shrink-0">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register"
+                className="block w-full text-center py-2.5 rounded-lg text-sm font-semibold border border-[#1f1f1f] hover:border-[#00ff88] text-[#f0f0f0] transition-colors">
+                Get started free
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div className="bg-[#111111] border border-[#00ff88] rounded-xl p-6 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00ff88] text-black text-xs font-bold px-3 py-1 rounded-full font-mono">
+                Most popular
+              </div>
+              <h3 className="font-mono font-bold text-white mb-1">Pro</h3>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="font-mono text-3xl font-bold text-white">$9</span>
+                <span className="text-[#666666] text-sm mb-1">CAD/mo</span>
+              </div>
+              <p className="text-xs text-[#555555] mb-5">Billed monthly · Cancel anytime</p>
+              <ul className="space-y-2.5 mb-6">
+                {["Unlimited requests", "10 API keys", "All rule types", "90-day log retention", "Email alerts", "Priority support"].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-[#999999]">
+                    <span className="text-[#00ff88] mt-0.5 shrink-0">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <a href={STRIPE_PRO_LINK} target="_blank" rel="noopener noreferrer"
+                className="block w-full text-center py-2.5 rounded-lg text-sm font-semibold bg-[#00ff88] hover:bg-[#00cc6e] text-black transition-colors">
+                Upgrade to Pro →
+              </a>
+            </div>
           </div>
+
+          <p className="text-center text-xs text-[#444444] font-mono mt-6">
+            Need more? <a href="mailto:hello@leashly.dev" className="text-[#555555] hover:text-[#00ff88] underline transition-colors">Contact us</a> for custom plans.
+          </p>
         </section>
       </FadeSection>
 
@@ -484,9 +463,7 @@ export default function LandingPage() {
       <FadeSection>
         <section className="py-24 px-6 max-w-3xl mx-auto">
           <h2 className="font-mono text-3xl font-bold text-white text-center mb-12">FAQ</h2>
-          <div>
-            {FAQS.map(faq => <Accordion key={faq.q} q={faq.q} a={faq.a} />)}
-          </div>
+          {FAQS.map(faq => <Accordion key={faq.q} q={faq.q} a={faq.a} />)}
         </section>
       </FadeSection>
 
@@ -495,9 +472,7 @@ export default function LandingPage() {
         <section className="py-24 px-6">
           <div className="max-w-3xl mx-auto bg-[#111111] border border-[#00ff88]/20 rounded-2xl p-12 text-center"
             style={{ boxShadow: "0 0 60px rgba(0,255,136,0.05)" }}>
-            <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">
-              Start protecting your AI spend today.
-            </h2>
+            <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Start protecting your AI spend today.</h2>
             <p className="text-[#999999] mb-8">Free forever for indie devs. No credit card required.</p>
             <Link href="/register"
               className="inline-block bg-[#00ff88] hover:bg-[#00cc6e] text-black font-bold px-8 py-3 rounded-lg text-lg transition-colors font-mono">
@@ -505,9 +480,9 @@ export default function LandingPage() {
             </Link>
             <div className="mt-6 flex items-center justify-center gap-2 text-[#444444] text-sm">
               <span>or</span>
-              <a href="#how-it-works" className="text-[#666666] hover:text-[#00ff88] transition-colors underline underline-offset-4">
+              <Link href="/docs" className="text-[#666666] hover:text-[#00ff88] transition-colors underline underline-offset-4">
                 Read the docs
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -518,17 +493,17 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             {[
-              { title: "Product", links: ["Features", "Pricing", "Docs", "Changelog"] },
-              { title: "Developers", links: ["API Reference", "SDK", "Open Source", "Status"] },
-              { title: "Company", links: ["About", "Blog", "Careers", "Contact"] },
-              { title: "Legal", links: ["Privacy", "Terms", "Security"] },
+              { title: "Product", links: [{ label: "Features", href: "/#how-it-works" }, { label: "Pricing", href: "/#pricing" }, { label: "Docs", href: "/docs" }, { label: "Dashboard", href: "/dashboard" }] },
+              { title: "Developers", links: [{ label: "API Reference", href: "/docs" }, { label: "Quick start", href: "/docs" }, { label: "GitHub", href: "https://github.com/Sumit-Sheokand-ai/leashly" }, { label: "Status", href: "#" }] },
+              { title: "Account", links: [{ label: "Sign in", href: "/login" }, { label: "Sign up", href: "/register" }, { label: "Settings", href: "/dashboard/settings" }, { label: "Upgrade to Pro", href: STRIPE_PRO_LINK }] },
+              { title: "Legal", links: [{ label: "Privacy", href: "#" }, { label: "Terms", href: "#" }, { label: "Security", href: "/docs" }, { label: "Contact", href: "mailto:hello@leashly.dev" }] },
             ].map(({ title, links }) => (
               <div key={title}>
                 <h4 className="font-mono text-xs font-bold text-[#666666] uppercase tracking-wider mb-4">{title}</h4>
                 <ul className="space-y-2.5">
                   {links.map(link => (
-                    <li key={link}>
-                      <a href="#" className="text-sm text-[#444444] hover:text-[#f0f0f0] transition-colors">{link}</a>
+                    <li key={link.label}>
+                      <a href={link.href} className="text-sm text-[#444444] hover:text-[#f0f0f0] transition-colors">{link.label}</a>
                     </li>
                   ))}
                 </ul>
@@ -538,14 +513,10 @@ export default function LandingPage() {
           <div className="border-t border-[#1f1f1f] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="font-mono text-xs text-[#333333]">© 2025 Leashly. Built for developers.</span>
             <div className="flex gap-4">
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-                className="text-[#444444] hover:text-white transition-colors font-mono text-xs">
-                GitHub
-              </a>
+              <a href="https://github.com/Sumit-Sheokand-ai/leashly" target="_blank" rel="noopener noreferrer"
+                className="text-[#444444] hover:text-white transition-colors font-mono text-xs">GitHub</a>
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
-                className="text-[#444444] hover:text-white transition-colors font-mono text-xs">
-                X / Twitter
-              </a>
+                className="text-[#444444] hover:text-white transition-colors font-mono text-xs">X / Twitter</a>
             </div>
           </div>
         </div>

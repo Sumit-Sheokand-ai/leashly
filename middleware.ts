@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_COOKIE_MAX_AGE } from "@/lib/supabase/config";
 
 const PUBLIC_PATHS = ["/", "/login", "/register", "/sitemap.xml", "/robots.txt"];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/api/proxy", "/_next", "/favicon"];
@@ -28,7 +29,7 @@ export async function middleware(req: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = NextResponse.next({ request: req });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, { ...options, maxAge: SUPABASE_COOKIE_MAX_AGE })
           );
         },
       },

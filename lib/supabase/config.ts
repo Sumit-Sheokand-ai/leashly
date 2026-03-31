@@ -1,0 +1,3 @@
+const SECONDS_IN_DAY = 60 * 60 * 24;
+
+export const SUPABASE_COOKIE_MAX_AGE = SECONDS_IN_DAY * 30;

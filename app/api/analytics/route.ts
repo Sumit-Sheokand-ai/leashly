@@ -105,8 +105,8 @@ export async function GET(req: NextRequest) {
     const avgLatency = validLogs.length
       ? Math.round(validLogs.reduce((s, l) => s + l.durationMs, 0) / validLogs.length)
       : 0;
-    const prevCost = prevLogs._sum.totalCost ?? 0;
-    const prevRequests = prevLogs._count._all;
+    const prevCost = prevLogs?._sum?.totalCost ?? 0;
+    const prevRequests = prevLogs?._count?._all ?? 0;
     const costChange = prevCost > 0
       ? Math.round(((totalCost - prevCost) / prevCost) * 100)
       : null;

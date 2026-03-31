@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SUPABASE_COOKIE_MAX_AGE } from "./config";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -14,7 +15,7 @@ export async function createSupabaseServerClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, { ...options, maxAge: SUPABASE_COOKIE_MAX_AGE })
             );
           } catch {
             // Called from a Server Component — middleware handles cookie refresh

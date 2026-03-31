@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
+function parseTimestamp(value: Date | string) {
+  const timestamp = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+}
+
 export async function GET(req: NextRequest) {
-  const user = await getSessionUser();
+  const user = await getSessionUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = req.nextUrl;
@@ -35,6 +40,11 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    const validLogs = logs.flatMap((log) => {
+      const timestamp = parseTimestamp(log.timestamp);
+      return timestamp ? [{ ...log, timestamp }] : [];
+    });
+
     // Daily spend & requests
     const dayMap: Record<string, { spend: number; requests: number }> = {};
     for (let i = 0; i < days; i++) {
@@ -42,19 +52,19 @@ export async function GET(req: NextRequest) {
       const key = d.toISOString().slice(0, 10);
       dayMap[key] = { spend: 0, requests: 0 };
     }
-    for (const log of logs) {
-      const key = new Date(log.timestamp).toISOString().slice(0, 10);
+    for (const log of validLogs) {
+      const key = log.timestamp.toISOString().slice(0, 10);
       if (dayMap[key]) { dayMap[key].spend += log.totalCost; dayMap[key].requests++; }
     }
     const daily = Object.entries(dayMap).map(([date, v]) => ({ date, ...v }));
 
     // Model breakdown
     const modelMap: Record<string, { cost: number; requests: number; tokens: number }> = {};
-    for (const log of logs) {
+    for (const log of validLogs) {
       if (!modelMap[log.model]) modelMap[log.model] = { cost: 0, requests: 0, tokens: 0 };
       modelMap[log.model].cost += log.totalCost;
       modelMap[log.model].requests++;
-      modelMap[log.model].tokens += log.promptTokens + log.completionTokens;
+      modelMap[log.model].tokens += (log.promptTokens ?? 0) + (log.completionTokens ?? 0);
     }
     const byModel = Object.entries(modelMap)
       .map(([model, v]) => ({ model, ...v }))
@@ -62,7 +72,7 @@ export async function GET(req: NextRequest) {
 
     // Provider breakdown
     const providerMap: Record<string, { cost: number; requests: number }> = {};
-    for (const log of logs) {
+    for (const log of validLogs) {
       if (!providerMap[log.provider]) providerMap[log.provider] = { cost: 0, requests: 0 };
       providerMap[log.provider].cost += log.totalCost;
       providerMap[log.provider].requests++;
@@ -71,7 +81,7 @@ export async function GET(req: NextRequest) {
 
     // Per-key stats
     const keyMap: Record<string, { cost: number; requests: number; lastUsed: string | null }> = {};
-    for (const log of logs) {
+    for (const log of validLogs) {
       if (!keyMap[log.apiKeyId]) keyMap[log.apiKeyId] = { cost: 0, requests: 0, lastUsed: null };
       keyMap[log.apiKeyId].cost += log.totalCost;
       keyMap[log.apiKeyId].requests++;
@@ -88,12 +98,12 @@ export async function GET(req: NextRequest) {
     })).sort((a, b) => b.cost - a.cost);
 
     // Totals
-    const totalCost = logs.reduce((s, l) => s + l.totalCost, 0);
-    const totalRequests = logs.length;
-    const totalTokens = logs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
-    const flaggedCount = logs.filter(l => l.flagged).length;
-    const avgLatency = logs.length
-      ? Math.round(logs.reduce((s, l) => s + l.durationMs, 0) / logs.length)
+    const totalCost = validLogs.reduce((s, l) => s + l.totalCost, 0);
+    const totalRequests = validLogs.length;
+    const totalTokens = validLogs.reduce((s, l) => s + (l.promptTokens ?? 0) + (l.completionTokens ?? 0), 0);
+    const flaggedCount = validLogs.filter(l => l.flagged).length;
+    const avgLatency = validLogs.length
+      ? Math.round(validLogs.reduce((s, l) => s + l.durationMs, 0) / validLogs.length)
       : 0;
     const prevCost = prevLogs._sum.totalCost ?? 0;
     const prevRequests = prevLogs._count._all;

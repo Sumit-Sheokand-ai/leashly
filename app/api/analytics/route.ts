@@ -17,14 +17,17 @@ export async function GET(req: NextRequest) {
     const [logs, prevLogs, keys] = await Promise.all([
       prisma.requestLog.findMany({
         where: { userId: user.id, timestamp: { gte: since } },
-        select: { timestamp: true, totalCost: true, model: true, provider: true,
-                  promptTokens: true, completionTokens: true, flagged: true, durationMs: true, apiKeyId: true },
+        select: {
+          timestamp: true, totalCost: true, model: true, provider: true,
+          promptTokens: true, completionTokens: true, flagged: true,
+          durationMs: true, apiKeyId: true,
+        },
         orderBy: { timestamp: "asc" },
       }),
       prisma.requestLog.aggregate({
         where: { userId: user.id, timestamp: { gte: prevSince, lt: since } },
         _sum: { totalCost: true },
-        _count: true,
+        _count: { _all: true },
       }),
       prisma.apiKey.findMany({
         where: { userId: user.id },
@@ -89,11 +92,17 @@ export async function GET(req: NextRequest) {
     const totalRequests = logs.length;
     const totalTokens = logs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
     const flaggedCount = logs.filter(l => l.flagged).length;
-    const avgLatency = logs.length ? Math.round(logs.reduce((s, l) => s + l.durationMs, 0) / logs.length) : 0;
+    const avgLatency = logs.length
+      ? Math.round(logs.reduce((s, l) => s + l.durationMs, 0) / logs.length)
+      : 0;
     const prevCost = prevLogs._sum.totalCost ?? 0;
-    const prevRequests = prevLogs._count;
-    const costChange = prevCost > 0 ? Math.round(((totalCost - prevCost) / prevCost) * 100) : null;
-    const requestChange = prevRequests > 0 ? Math.round(((totalRequests - prevRequests) / prevRequests) * 100) : null;
+    const prevRequests = prevLogs._count._all;
+    const costChange = prevCost > 0
+      ? Math.round(((totalCost - prevCost) / prevCost) * 100)
+      : null;
+    const requestChange = prevRequests > 0
+      ? Math.round(((totalRequests - prevRequests) / prevRequests) * 100)
+      : null;
 
     return NextResponse.json({
       range, days, totalCost, totalRequests, totalTokens, flaggedCount, avgLatency,
@@ -101,7 +110,8 @@ export async function GET(req: NextRequest) {
       daily, byModel, byProvider, byKey,
     });
   } catch (err) {
-    console.error("Analytics error:", err);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Analytics error:", message);
+    return NextResponse.json({ error: "Failed", detail: message }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import {
   Search, ChevronRight, Copy, Check, Menu, X, ExternalLink,
   Zap, Shield, DollarSign, ScrollText, Key, Bell, Settings,
   BookOpen, Terminal, Code2, Layers, AlertTriangle, HelpCircle,
-  ArrowRight, Github, Twitter
+  ArrowRight
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
@@ -949,13 +949,13 @@ export default function DocsPage() {
 
           {/* Sidebar footer */}
           <div className="px-3 py-3 border-t border-[#111111] flex items-center gap-3">
-            <a href="https://github.com" target="_blank" rel="noopener"
+            <a href="https://github.com/Sumit-Sheokand-ai/leashly" target="_blank" rel="noopener"
               className="text-[#333333] hover:text-[#888888] transition-colors">
-              <Github size={14} />
+              <ExternalLink size={14} />
             </a>
             <a href="https://twitter.com" target="_blank" rel="noopener"
               className="text-[#333333] hover:text-[#888888] transition-colors">
-              <Twitter size={14} />
+              <X size={14} />
             </a>
             <span className="text-[10px] text-[#222222] font-mono ml-auto">v0.1.0</span>
           </div>

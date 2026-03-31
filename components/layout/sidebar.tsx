@@ -3,16 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Key, Shield, ScrollText, Bell, Settings } from "lucide-react";
+import { LayoutDashboard, Key, Shield, ScrollText, Bell, Settings, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",          label: "Overview",  icon: LayoutDashboard },
-  { href: "/dashboard/keys",    label: "API Keys",  icon: Key },
-  { href: "/dashboard/rules",   label: "Rules",     icon: Shield },
-  { href: "/dashboard/logs",    label: "Logs",      icon: ScrollText },
-  { href: "/dashboard/alerts",  label: "Alerts",    icon: Bell },
-  { href: "/dashboard/settings",label: "Settings",  icon: Settings },
+  { href: "/dashboard",            label: "Overview",   icon: LayoutDashboard },
+  { href: "/dashboard/analytics",  label: "Analytics",  icon: BarChart2 },
+  { href: "/dashboard/keys",       label: "API Keys",   icon: Key },
+  { href: "/dashboard/rules",      label: "Rules",      icon: Shield },
+  { href: "/dashboard/logs",       label: "Logs",       icon: ScrollText },
+  { href: "/dashboard/alerts",     label: "Alerts",     icon: Bell },
+  { href: "/dashboard/settings",   label: "Settings",   icon: Settings },
 ];
 
 export function Sidebar({ flaggedCount = 0 }: { flaggedCount?: number }) {

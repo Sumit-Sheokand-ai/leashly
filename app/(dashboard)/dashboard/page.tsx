@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { RequestsChart } from "@/components/charts/requests-chart";
 import { CostChart } from "@/components/charts/cost-chart";
-import { DollarSign, Activity, ShieldAlert, Shield, ExternalLink, RefreshCw } from "lucide-react";
+import { DollarSign, Activity, ShieldAlert, Shield, ExternalLink, RefreshCw, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { OnboardingChecklist } from "@/components/layout/onboarding-checklist";
 
 interface Stats {
-  totalSpendToday: number;
-  requestsToday: number;
-  flaggedToday: number;
-  activeRules: number;
+  totalSpendToday: number; requestsToday: number; flaggedToday: number; activeRules: number;
   requestsPerHour: Array<{ hour: string; count: number }>;
   costPerModel: Array<{ model: string; cost: number }>;
 }
@@ -21,6 +19,8 @@ interface LogRow {
   flagged: boolean; statusCode: number;
 }
 
+interface OnboardingState { hasKey: boolean; hasRule: boolean; hasRequests: boolean; }
+
 const PROVIDER_COLORS: Record<string, string> = {
   openai: "#7c3aed", anthropic: "#ea580c", gemini: "#2563eb", custom: "#666666",
 };
@@ -29,54 +29,65 @@ function ProviderBadge({ provider }: { provider: string }) {
   const color = PROVIDER_COLORS[provider] ?? "#666666";
   return (
     <span className="px-2 py-0.5 rounded-full text-xs font-mono font-medium"
-      style={{ background: `${color}22`, color }}>
-      {provider}
-    </span>
+      style={{ background: `${color}20`, color }}>{provider}</span>
   );
 }
 
-function StatCard({ icon: Icon, label, value, color = "#00ff88" }: {
-  icon: React.ElementType; label: string; value: string; color?: string;
+function StatCard({ icon: Icon, label, value, href, color = "#00ff88" }: {
+  icon: React.ElementType; label: string; value: string; href?: string; color?: string;
 }) {
-  return (
-    <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-5 card-glow">
+  const inner = (
+    <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-xl p-5 transition-all hover:border-[#222222]">
       <div className="mb-3">
-        <div className="p-2 rounded-lg w-fit" style={{ background: `${color}18` }}>
-          <Icon size={16} style={{ color }} />
+        <div className="p-2 rounded-lg w-fit" style={{ background: `${color}14` }}>
+          <Icon size={15} style={{ color }} />
         </div>
       </div>
       <div className="font-mono text-2xl font-bold text-white mb-1">{value}</div>
-      <div className="text-sm text-[#666666]">{label}</div>
+      <div className="text-xs text-[#555555]">{label}</div>
     </div>
   );
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [logs, setLogs] = useState<LogRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasData, setHasData] = useState(false);
+  const [stats, setStats]         = useState<Stats | null>(null);
+  const [logs, setLogs]           = useState<LogRow[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [hasData, setHasData]     = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingState>({ hasKey: false, hasRule: false, hasRequests: false });
 
   async function loadData() {
     setLoading(true);
     try {
-      const [sRes, lRes] = await Promise.all([
+      const [sRes, lRes, kRes, rRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/logs?page=1"),
+        fetch("/api/keys"),
+        fetch("/api/rules"),
       ]);
 
-      if (sRes.ok) {
-        const s = await sRes.json();
-        setStats(s);
-      }
+      if (sRes.ok) setStats(await sRes.json());
 
       if (lRes.ok) {
         const l = await lRes.json();
         setLogs(l.logs ?? []);
-        setHasData((l.total ?? 0) > 0);
+        const has = (l.total ?? 0) > 0;
+        setHasData(has);
+        setOnboarding(o => ({ ...o, hasRequests: has }));
+      }
+
+      if (kRes.ok) {
+        const keys = await kRes.json();
+        setOnboarding(o => ({ ...o, hasKey: Array.isArray(keys) && keys.length > 0 }));
+      }
+
+      if (rRes.ok) {
+        const rules = await rRes.json();
+        setOnboarding(o => ({ ...o, hasRule: Array.isArray(rules) && rules.length > 0 }));
       }
     } catch (err) {
-      console.error("Failed to load dashboard data:", err);
+      console.error("Dashboard load error:", err);
     } finally {
       setLoading(false);
     }
@@ -87,100 +98,110 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="animate-spin text-[#00ff88]" size={24} />
-      </div>
-    );
-  }
-
-  if (!hasData) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-        <div className="w-12 h-12 rounded-xl bg-[#111111] border border-[#1f1f1f] flex items-center justify-center">
-          <Activity size={24} className="text-[#333333]" />
-        </div>
-        <div>
-          <h2 className="font-mono text-xl text-white mb-2">No requests yet</h2>
-          <p className="text-[#666666] text-sm mb-6 max-w-sm">
-            Add your first API key, then point your app at the Leashly proxy to start tracking usage.
-          </p>
-          <Link href="/dashboard/keys"
-            className="bg-[#00ff88] hover:bg-[#00cc6e] text-black text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
-            Add API Key →
-          </Link>
-        </div>
+        <RefreshCw className="animate-spin text-[#00ff88]" size={22} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-5xl">
+      {/* Onboarding checklist */}
+      <OnboardingChecklist {...onboarding} />
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-mono text-lg font-bold text-white">Overview</h2>
-          <p className="text-sm text-[#666666]">Last 24 hours</p>
+          <p className="text-sm text-[#555555] mt-0.5">Last 24 hours</p>
         </div>
-        <button onClick={loadData}
-          className="text-xs border border-[#1f1f1f] text-[#666666] hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
-          <RefreshCw size={12} /> Refresh
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="Total spend today" value={`$${(stats?.totalSpendToday ?? 0).toFixed(4)}`} color="#00ff88" />
-        <StatCard icon={Activity} label="Requests today" value={String(stats?.requestsToday ?? 0)} color="#00aaff" />
-        <StatCard icon={ShieldAlert} label="Flagged requests" value={String(stats?.flaggedToday ?? 0)} color="#ff4444" />
-        <StatCard icon={Shield} label="Active rules" value={String(stats?.activeRules ?? 0)} color="#ffaa00" />
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-5">
-          <h3 className="font-mono text-sm font-semibold text-white mb-4">Requests / hour</h3>
-          <RequestsChart data={stats?.requestsPerHour ?? []} />
-        </div>
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl p-5">
-          <h3 className="font-mono text-sm font-semibold text-white mb-4">Cost by model</h3>
-          <CostChart data={stats?.costPerModel ?? []} />
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/analytics"
+            className="flex items-center gap-1.5 text-xs text-[#555555] hover:text-[#888888] border border-[#1a1a1a] hover:border-[#222222] px-3 py-1.5 rounded-lg transition-all">
+            <TrendingUp size={12} /> Analytics
+          </Link>
+          <button onClick={loadData}
+            className="text-xs border border-[#1a1a1a] text-[#555555] hover:text-[#888888] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+            <RefreshCw size={12} /> Refresh
+          </button>
         </div>
       </div>
 
-      <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f]">
-          <h3 className="font-mono text-sm font-semibold text-white">Recent requests</h3>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <StatCard icon={DollarSign} label="Spend today" value={`$${(stats?.totalSpendToday ?? 0).toFixed(4)}`} href="/dashboard/analytics" color="#00ff88" />
+        <StatCard icon={Activity}   label="Requests today" value={String(stats?.requestsToday ?? 0)} href="/dashboard/logs" color="#00aaff" />
+        <StatCard icon={ShieldAlert} label="Flagged today" value={String(stats?.flaggedToday ?? 0)} href="/dashboard/logs?flagged=true" color="#ff4444" />
+        <StatCard icon={Shield}     label="Active rules" value={String(stats?.activeRules ?? 0)} href="/dashboard/rules" color="#ffaa00" />
+      </div>
+
+      {/* Charts */}
+      {hasData && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-xl p-5">
+            <h3 className="font-mono text-xs font-semibold text-[#888888] uppercase tracking-wider mb-4">Requests / hour</h3>
+            <RequestsChart data={stats?.requestsPerHour ?? []} />
+          </div>
+          <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-xl p-5">
+            <h3 className="font-mono text-xs font-semibold text-[#888888] uppercase tracking-wider mb-4">Cost by model</h3>
+            <CostChart data={stats?.costPerModel ?? []} />
+          </div>
+        </div>
+      )}
+
+      {/* Recent requests */}
+      <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#111111]">
+          <h3 className="font-mono text-xs font-semibold text-[#888888] uppercase tracking-wider">Recent requests</h3>
           <Link href="/dashboard/logs"
-            className="text-xs text-[#666666] hover:text-[#00ff88] flex items-center gap-1 transition-colors">
+            className="text-xs text-[#444444] hover:text-[#00ff88] flex items-center gap-1 transition-colors">
             View all <ExternalLink size={11} />
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1f1f1f]">
-                {["Time", "Provider", "Model", "Tokens", "Cost", "Status"].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs text-[#444444] font-mono font-normal">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {logs.slice(0, 10).map((log, i) => (
-                <tr key={log.id} className={`border-b border-[#1f1f1f] hover:bg-[#1a1a1a] transition-colors ${i % 2 !== 0 ? "bg-[#0d0d0d]" : ""}`}>
-                  <td className="px-5 py-3 font-mono text-xs text-[#666666]">{new Date(log.timestamp).toLocaleTimeString()}</td>
-                  <td className="px-5 py-3"><ProviderBadge provider={log.provider} /></td>
-                  <td className="px-5 py-3 font-mono text-xs text-[#f0f0f0]">{log.model}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-[#666666]">{(log.promptTokens + log.completionTokens).toLocaleString()}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-[#f0f0f0]">${log.totalCost.toFixed(6)}</td>
-                  <td className="px-5 py-3">
-                    {log.flagged
-                      ? <span className="bg-[#ff4444]/15 text-[#ff4444] text-xs px-2 py-0.5 rounded-full font-mono">flagged</span>
-                      : <span className="bg-[#00ff88]/10 text-[#00ff88] text-xs px-2 py-0.5 rounded-full font-mono">ok</span>}
-                  </td>
+        {!hasData ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center px-6">
+            <Activity size={28} className="text-[#222222]" />
+            <div>
+              <p className="text-[#666666] text-sm font-medium">No requests yet</p>
+              <p className="text-[#333333] text-xs mt-1 max-w-xs">Add an API key and point your app at the Leashly proxy to start seeing usage here</p>
+            </div>
+            <Link href="/dashboard/keys"
+              className="mt-2 bg-[#00ff88] hover:bg-[#00dd77] text-black text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+              Add API Key →
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#111111]">
+                  {["Time", "Provider", "Model", "Tokens", "Cost", "Status"].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-[10px] text-[#333333] font-mono font-normal tracking-wider uppercase">{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {logs.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-[#444444] text-sm">No requests yet</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#0d0d0d]">
+                {logs.slice(0, 8).map(log => (
+                  <tr key={log.id} className="hover:bg-[#0d0d0d] transition-colors">
+                    <td className="px-5 py-3 font-mono text-xs text-[#555555] whitespace-nowrap">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </td>
+                    <td className="px-5 py-3"><ProviderBadge provider={log.provider} /></td>
+                    <td className="px-5 py-3 font-mono text-xs text-[#cccccc] max-w-[140px] truncate">{log.model}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-[#555555]">
+                      {(log.promptTokens + log.completionTokens).toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-xs text-[#cccccc]">${log.totalCost.toFixed(6)}</td>
+                    <td className="px-5 py-3">
+                      {log.flagged
+                        ? <span className="bg-[#ff4444]/12 text-[#ff5555] text-xs px-2 py-0.5 rounded-full font-mono">flagged</span>
+                        : <span className="bg-[#00ff88]/8 text-[#00dd77] text-xs px-2 py-0.5 rounded-full font-mono">ok</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

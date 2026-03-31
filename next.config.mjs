@@ -16,12 +16,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' blob: data: https:",
-      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com`,
-      "frame-src https://accounts.google.com",
+      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com`,
+      "frame-src https://accounts.google.com https://www.googletagmanager.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },
@@ -33,7 +33,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply security headers to all pages EXCEPT sitemap and robots
         source: "/((?!sitemap.xml|robots.txt).*)",
         headers: securityHeaders,
       },

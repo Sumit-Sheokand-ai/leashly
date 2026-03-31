@@ -11,24 +11,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No signature" }, { status: 400 });
   }
 
-  let event: {
-    type: string;
-    data: {
-      object: {
-        customer?: string;
-        status?: string;
-        id?: string;
-        customer_email?: string;
-        metadata?: Record<string, string>;
-      };
-    };
-  };
+  let event;
 
   try {
     // Dynamic import to avoid issues if stripe isn't installed
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2024-12-18.acacia",
+      apiVersion: "2026-03-25.dahlia",
     });
 
     event = stripe.webhooks.constructEvent(

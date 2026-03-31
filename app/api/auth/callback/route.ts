@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SUPABASE_COOKIE_MAX_AGE } from "@/lib/supabase/config";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
         getAll() { return cookieStore.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, { ...options, maxAge: SUPABASE_COOKIE_MAX_AGE })
           );
         },
       },

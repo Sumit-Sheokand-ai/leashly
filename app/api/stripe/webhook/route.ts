@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   if (!signature) return NextResponse.json({ error: "No signature" }, { status: 400 });
 
-  let event: { type: string; data: { object: { customer?: string; status?: string; id?: string; customer_email?: string } } };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let event: any;
   try {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -22,21 +23,21 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object;
-        const status = sub.status;
+        const status: string = sub.status;
         if (status === "active" || status === "trialing") {
-          await db.from("User").update({ plan: "pro", stripeSubscriptionId: sub.id }).eq("stripeCustomerId", sub.customer as string);
+          await db.from("User").update({ plan: "pro", stripeSubscriptionId: sub.id }).eq("stripeCustomerId", sub.customer);
         } else {
-          await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", sub.customer as string);
+          await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", sub.customer);
         }
         break;
       }
       case "customer.subscription.deleted":
-        await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", event.data.object.customer as string);
+        await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", event.data.object.customer);
         break;
       case "checkout.session.completed": {
         const session = event.data.object;
         if (session.customer_email) {
-          await db.from("User").update({ stripeCustomerId: session.customer as string, plan: "pro" }).eq("email", session.customer_email);
+          await db.from("User").update({ stripeCustomerId: session.customer, plan: "pro" }).eq("email", session.customer_email);
         }
         break;
       }

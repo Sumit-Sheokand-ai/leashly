@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { prisma } from "@/lib/prisma";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSessionUser } from "@/lib/session";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -10,10 +10,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let flaggedCount = 0;
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    flaggedCount = await prisma.requestLog.count({
-      where: { userId: user.id, flagged: true, timestamp: { gte: twentyFourHoursAgo } },
-    });
+    const db = createSupabaseAdmin();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await db.from("RequestLog")
+      .select("id", { count: "exact", head: true })
+      .eq("userId", user.id).eq("flagged", true).gte("timestamp", dayAgo);
+    flaggedCount = count ?? 0;
   } catch {}
 
   return (

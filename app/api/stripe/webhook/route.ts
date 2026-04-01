@@ -1,68 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import type Stripe from "stripe";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
+  if (!signature) return NextResponse.json({ error: "No signature" }, { status: 400 });
 
-  if (!signature) {
-    return NextResponse.json({ error: "No signature" }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
-
+  let event: { type: string; data: { object: { customer?: string; status?: string; id?: string; customer_email?: string } } };
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-12-18.acacia" });
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.error("Stripe webhook signature failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  const db = createSupabaseAdmin();
   try {
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object;
-        const customerId = sub.customer as string;
         const status = sub.status;
-        const subscriptionId = sub.id as string;
         if (status === "active" || status === "trialing") {
-          await prisma.user.updateMany({
-            where: { stripeCustomerId: customerId },
-            data: { plan: "pro", stripeSubscriptionId: subscriptionId },
-          });
+          await db.from("User").update({ plan: "pro", stripeSubscriptionId: sub.id }).eq("stripeCustomerId", sub.customer as string);
         } else {
-          await prisma.user.updateMany({
-            where: { stripeCustomerId: customerId },
-            data: { plan: "free", stripeSubscriptionId: null },
-          });
+          await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", sub.customer as string);
         }
         break;
       }
-      case "customer.subscription.deleted": {
-        const sub = event.data.object;
-        await prisma.user.updateMany({
-          where: { stripeCustomerId: sub.customer as string },
-          data: { plan: "free", stripeSubscriptionId: null },
-        });
+      case "customer.subscription.deleted":
+        await db.from("User").update({ plan: "free", stripeSubscriptionId: null }).eq("stripeCustomerId", event.data.object.customer as string);
         break;
-      }
       case "checkout.session.completed": {
         const session = event.data.object;
-        const customerId = session.customer as string;
-        const customerEmail = session.customer_email as string;
-        if (customerEmail) {
-          await prisma.user.updateMany({
-            where: { email: customerEmail },
-            data: { stripeCustomerId: customerId, plan: "pro" },
-          });
+        if (session.customer_email) {
+          await db.from("User").update({ stripeCustomerId: session.customer as string, plan: "pro" }).eq("email", session.customer_email);
         }
         break;
       }
@@ -70,6 +44,5 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Stripe webhook DB error:", err);
   }
-
   return NextResponse.json({ received: true });
 }

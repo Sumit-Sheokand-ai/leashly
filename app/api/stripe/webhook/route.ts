@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   let event: { type: string; data: { object: { customer?: string; status?: string; id?: string; customer_email?: string } } };
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-12-18.acacia" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.error("Stripe webhook signature failed:", err);

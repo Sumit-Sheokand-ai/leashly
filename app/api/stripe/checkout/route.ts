@@ -7,7 +7,7 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-12-18.acacia" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leashly.dev";
     const db = createSupabaseAdmin();
 

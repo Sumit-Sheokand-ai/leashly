@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_COOKIE_MAX_AGE } from "@/lib/supabase/config";
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/sitemap.xml", "/robots.txt", "/bb149e02314a49ef97036b68d89ffd79.txt"];
+const INDEXNOW_KEY_FILENAME = process.env.NEXT_PUBLIC_INDEXNOW_KEY_FILENAME ?? "bb149e02314a49ef97036b68d89ffd79.txt";
+const INDEXNOW_KEY_PATH = `/${INDEXNOW_KEY_FILENAME.replace(/^\/+/, "")}`;
+const PUBLIC_PATHS = ["/", "/login", "/register", "/sitemap.xml", "/robots.txt", INDEXNOW_KEY_PATH];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/api/proxy", "/_next", "/favicon"];
 
 export async function middleware(req: NextRequest) {

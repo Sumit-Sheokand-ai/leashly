@@ -16,11 +16,22 @@ model User {
   stripeSubscriptionId String?
   createdAt            DateTime @default(now())
 
-  apiKeys       ApiKey[]
-  rules         Rule[]
-  requestLogs   RequestLog[]
-  alerts        Alert[]
-  notifications Notification[]
+  // Leashly upgrade fields
+  billingModel        String  @default("flat")
+  cacheEnabled        Boolean @default(true)
+  routingEnabled      Boolean @default(false)
+  cacheTtlHours       Int     @default(24)
+  similarityThreshold Float   @default(0.97)
+
+  apiKeys              ApiKey[]
+  rules                Rule[]
+  requestLogs          RequestLog[]
+  alerts               Alert[]
+  notifications        Notification[]
+  routingRules         RoutingRule[]
+  cacheEntries         CacheEntry[]
+  benchmarkJobs        BenchmarkJob[]
+  workspaceMemberships WorkspaceMember[]
 }
 
 model ApiKey {
@@ -65,6 +76,19 @@ model RequestLog {
   durationMs       Int      @default(0)
   statusCode       Int      @default(200)
 
+  // Leashly upgrade — savings tracking
+  wasRouted            Boolean @default(false)
+  originalModel        String?
+  actualModel          String?
+  routingSavings       Float   @default(0)
+  wasCacheHit          Boolean @default(false)
+  cacheSavings         Float   @default(0)
+  wasCompressed        Boolean @default(false)
+  originalPromptTokens Int?
+  compressedTokens     Int?
+  compressionSavings   Float   @default(0)
+  totalSavings         Float   @default(0)
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 }
@@ -90,4 +114,75 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RoutingRule {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  condition   Json     @default("{}")
+  targetModel String
+  provider    String
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CacheEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  model      String
+  promptHash String
+  // embedding managed via raw Supabase RPC (pgvector)
+  response   Json
+  tokens     Int      @default(0)
+  cost       Float    @default(0)
+  hitCount   Int      @default(0)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime @default(dbgenerated("now() + interval '24 hours'"))
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([promptHash])
+}
+
+model BenchmarkJob {
+  id          String    @id @default(cuid())
+  userId      String
+  status      String    @default("pending")
+  providers   String[]  @default([])
+  testType    String    @default("short_factual")
+  results     Json?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Workspace {
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  plan          String            @default("free")
+  monthlyBudget Float?
+  createdAt     DateTime          @default(now())
+  members       WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String    @default("developer")
+  joinedAt    DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
 }

@@ -6,6 +6,11 @@ import { sendCancellationEmail } from "@/lib/resend";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-03-25.dahlia" });
 
+// Helper — naye Stripe API mein current_period_end subscription item pe hoti hai
+function getPeriodEnd(sub: Stripe.Subscription): number | null {
+  return sub.items?.data?.[0]?.current_period_end ?? null;
+}
+
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,21 +32,22 @@ export async function GET() {
     try {
       const sub = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
       cancelAtPeriodEnd = sub.cancel_at_period_end;
-      if (sub.current_period_end) {
-        subscriptionEndsAt = new Date(sub.current_period_end * 1000).toISOString();
+      const periodEnd = getPeriodEnd(sub);
+      if (periodEnd) {
+        subscriptionEndsAt = new Date(periodEnd * 1000).toISOString();
       }
     } catch {}
   }
 
   return NextResponse.json({
-    billingModel:       userData?.billingModel ?? "flat",
-    currentPlan:        userData?.plan ?? "free",
+    billingModel:    userData?.billingModel ?? "flat",
+    currentPlan:     userData?.plan ?? "free",
     monthlySavings,
     usageBasedCost,
-    flatCost:           9,
+    flatCost:        9,
     subscriptionEndsAt,
     cancelAtPeriodEnd,
-    hasSubscription:    !!userData?.stripeSubscriptionId,
+    hasSubscription: !!userData?.stripeSubscriptionId,
   });
 }
 
@@ -77,11 +83,12 @@ export async function PATCH(req: NextRequest) {
     });
 
     const sub = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
-    const endsAt = new Date(sub.current_period_end * 1000).toLocaleDateString("en-US", {
-      month: "long", day: "numeric", year: "numeric",
-    });
-    await sendCancellationEmail(userData.email ?? user.email, { endsAt, immediateDowngrade: false });
+    const periodEnd = getPeriodEnd(sub);
+    const endsAt = periodEnd
+      ? new Date(periodEnd * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+      : "end of billing period";
 
+    await sendCancellationEmail(userData.email ?? user.email, { endsAt, immediateDowngrade: false });
     return NextResponse.json({ ok: true, message: `Subscription cancelled. Access continues until ${endsAt}.` });
   }
 

@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import Stripe from "stripe";
 import { sendCancellationEmail } from "@/lib/resend";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-03-25.dahlia" });
 
 export async function GET() {
   const user = await getSessionUser();
@@ -21,7 +21,6 @@ export async function GET() {
   const monthlySavings = (savings ?? []).reduce((s, r) => s + (r.totalSavings ?? 0), 0);
   const usageBasedCost = monthlySavings * 0.1;
 
-  // Get subscription end date from Stripe if exists
   let subscriptionEndsAt: string | null = null;
   let cancelAtPeriodEnd = false;
   if (userData?.stripeSubscriptionId) {
@@ -52,7 +51,6 @@ export async function PATCH(req: NextRequest) {
   const db = createSupabaseAdmin();
   const body = await req.json();
 
-  // Switch billing model
   if (body.billingModel) {
     if (!["flat", "usage_based"].includes(body.billingModel)) {
       return NextResponse.json({ error: "Invalid billing model" }, { status: 400 });
@@ -61,7 +59,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, billingModel: body.billingModel });
   }
 
-  // Cancel subscription
   if (body.action === "cancel") {
     const { data: userData } = await db
       .from("User")
@@ -70,26 +67,24 @@ export async function PATCH(req: NextRequest) {
       .single();
 
     if (!userData?.stripeSubscriptionId) {
-      // No Stripe sub — just downgrade directly
       await db.from("User").update({ plan: "free" }).eq("id", user.id);
       await sendCancellationEmail(userData?.email ?? user.email, { immediateDowngrade: true });
       return NextResponse.json({ ok: true, message: "Subscription cancelled. You are now on the free plan." });
     }
 
-    // Cancel at period end in Stripe
     await stripe.subscriptions.update(userData.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    // Send cancellation email
     const sub = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
-    const endsAt = new Date(sub.current_period_end * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const endsAt = new Date(sub.current_period_end * 1000).toLocaleDateString("en-US", {
+      month: "long", day: "numeric", year: "numeric",
+    });
     await sendCancellationEmail(userData.email ?? user.email, { endsAt, immediateDowngrade: false });
 
     return NextResponse.json({ ok: true, message: `Subscription cancelled. Access continues until ${endsAt}.` });
   }
 
-  // Reactivate cancelled subscription
   if (body.action === "reactivate") {
     const { data: userData } = await db
       .from("User")

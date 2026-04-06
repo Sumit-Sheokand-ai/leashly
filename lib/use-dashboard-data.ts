@@ -7,8 +7,8 @@
  * - Page navigate → ZERO api call (serve from cache)
  * - Auto background refresh → every 15 minutes
  * - User changes something → UI updates INSTANTLY (optimistic)
- * - Actual API call → 2 minutes after last change (debounced batch)
- * - If API fails → UI reverts to last good state + shows error
+ * - Actual API call → 2 minutes after last change (silent, background)
+ * - If API fails → UI reverts to last good state silently
  * - Hard rate limit → max 30 Supabase calls per user per minute
  */
 
@@ -19,18 +19,15 @@ interface CacheEntry {
   fetchedAt: number;
 }
 
-// Global tab-level cache — survives page navigation
 const CACHE = new Map<string, CacheEntry>();
-
-// Rate limiter — max 30 calls per 60 seconds per key
 const CALL_LOG = new Map<string, number[]>();
 
-const AUTO_REFRESH_MS   = 15 * 60 * 1000; // 15 minutes
-const MUTATION_DELAY_MS =  2 * 60 * 1000; // 2 minutes after last change
-const RATE_LIMIT        = 30;             // max calls per window
-const RATE_WINDOW_MS    = 60 * 1000;      // 1 minute window
+const AUTO_REFRESH_MS   = 15 * 60 * 1000;
+const MUTATION_DELAY_MS =  2 * 60 * 1000;
+const RATE_LIMIT        = 30;
+const RATE_WINDOW_MS    = 60 * 1000;
 
-type Status = "idle" | "loading" | "error" | "saving";
+type Status = "idle" | "loading" | "error";
 
 function isRateLimited(key: string): boolean {
   const now = Date.now();
@@ -47,25 +44,20 @@ export function useDashboardData<T>(
   fetcher: () => Promise<T>,
   options?: { deps?: unknown[] }
 ) {
-  const [data, setData] = useState<T | null>(() => {
+  const [data, setData]     = useState<T | null>(() => {
     const c = CACHE.get(key);
     return c ? (c.data as T) : null;
   });
-  const [status, setStatus]   = useState<Status>(data ? "idle" : "loading");
-  const [error, setError]     = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>(data ? "idle" : "loading");
 
-  const mountedRef            = useRef(true);
-  const mutationTimer         = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoRefreshTimer      = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Store last known good state for rollback
-  const lastGoodData          = useRef<T | null>(data);
+  const mountedRef          = useRef(true);
+  const mutationTimer       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRefreshTimer    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastGoodData        = useRef<T | null>(data);
 
   const doFetch = useCallback(async (silent = false) => {
-    if (isRateLimited(key)) return; // hard rate limit — skip silently
-
+    if (isRateLimited(key)) return;
     if (!silent) setStatus("loading");
-    setError(null);
-
     try {
       const result = await fetcher();
       if (!mountedRef.current) return;
@@ -73,32 +65,24 @@ export function useDashboardData<T>(
       lastGoodData.current = result;
       setData(result);
       setStatus("idle");
-    } catch (err) {
+    } catch {
       if (!mountedRef.current) return;
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Failed to load");
+      if (!silent) setStatus("error");
     }
   }, [key, fetcher]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Mount: serve from cache immediately, background refresh if stale
   useEffect(() => {
     mountedRef.current = true;
-
     const cached = CACHE.get(key);
     if (cached) {
       setData(cached.data as T);
       lastGoodData.current = cached.data as T;
       setStatus("idle");
-      // Background refresh if stale
-      const age = Date.now() - cached.fetchedAt;
-      if (age >= AUTO_REFRESH_MS) doFetch(true);
+      if (Date.now() - cached.fetchedAt >= AUTO_REFRESH_MS) doFetch(true);
     } else {
       doFetch(false);
     }
-
-    // 15-minute silent background refresh
     autoRefreshTimer.current = setInterval(() => doFetch(true), AUTO_REFRESH_MS);
-
     return () => {
       mountedRef.current = false;
       if (autoRefreshTimer.current) clearInterval(autoRefreshTimer.current);
@@ -107,54 +91,34 @@ export function useDashboardData<T>(
   }, [key, ...(options?.deps ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
-   * optimisticUpdate — call this when user changes something
-   *
-   * Usage:
-   *   optimisticUpdate(
-   *     newData,                    // what to show immediately
-   *     () => fetch('/api/rules', { method: 'POST', ... })  // actual API call
-   *   )
-   *
-   * UI updates instantly. API call happens 2 minutes later.
-   * If API fails, UI reverts to previous state.
+   * optimisticUpdate — UI updates instantly, API fires silently in background after 2 min
    */
   const optimisticUpdate = useCallback((
     newData: T,
     apiCall: () => Promise<unknown>
   ) => {
-    // 1. Update UI instantly
     const previousData = data;
     setData(newData);
     CACHE.set(key, { data: newData, fetchedAt: Date.now() });
-    setStatus("saving");
+    // No status change — completely silent to user
 
-    // 2. Debounce the actual API call — 2 minutes after last change
     if (mutationTimer.current) clearTimeout(mutationTimer.current);
     mutationTimer.current = setTimeout(async () => {
       if (!mountedRef.current) return;
       try {
         await apiCall();
         lastGoodData.current = newData;
-        setStatus("idle");
-        // After save, re-fetch to sync with server
         setTimeout(() => doFetch(true), 1000);
-      } catch (err) {
-        // Rollback to previous state
+      } catch {
+        // Silent rollback — user doesn't see any error message
         if (mountedRef.current) {
           setData(previousData);
           CACHE.set(key, { data: previousData, fetchedAt: Date.now() });
-          setStatus("error");
-          setError("Failed to save. Changes reverted.");
-          setTimeout(() => setError(null), 5000);
         }
       }
     }, MUTATION_DELAY_MS);
   }, [key, data, doFetch]);
 
-  /**
-   * invalidate — call after add/delete (not edit)
-   * Waits 2 minutes then re-fetches
-   */
   const invalidate = useCallback(() => {
     if (mutationTimer.current) clearTimeout(mutationTimer.current);
     mutationTimer.current = setTimeout(() => {
@@ -163,10 +127,6 @@ export function useDashboardData<T>(
     }, MUTATION_DELAY_MS);
   }, [key, doFetch]);
 
-  /**
-   * refresh — manual refresh button
-   * Instant, but still respects rate limit (30/min)
-   */
   const refresh = useCallback(() => {
     if (mutationTimer.current) clearTimeout(mutationTimer.current);
     CACHE.delete(key);
@@ -176,9 +136,7 @@ export function useDashboardData<T>(
   return {
     data,
     status,
-    error,
-    loading:  status === "loading",
-    saving:   status === "saving",
+    loading: status === "loading",
     invalidate,
     optimisticUpdate,
     refresh,

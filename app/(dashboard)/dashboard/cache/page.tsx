@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Database, Trash2, ToggleLeft, ToggleRight, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { Database, Trash2, ToggleLeft, ToggleRight, RefreshCw } from "lucide-react";
 import { useDashboardData } from "@/lib/use-dashboard-data";
 
 interface CacheStats { totalEntries: number; totalHits: number; hitRate: number; moneySaved: number; }
@@ -18,7 +18,7 @@ export default function CachePage() {
     return res.json();
   }, []);
 
-  const { data, loading, saving, error, optimisticUpdate, invalidate, refresh } =
+  const { data, loading, optimisticUpdate, invalidate, refresh } =
     useDashboardData<CacheData>("dashboard:cache", fetcher);
 
   const stats    = data?.stats;
@@ -28,7 +28,6 @@ export default function CachePage() {
   const [flushing, setFlushing]   = useState(false);
   const [threshold, setThreshold] = useState(settings.similarityThreshold);
 
-  // Optimistic settings update — UI changes instantly, API call in 2 minutes
   function patchSettings(updates: Partial<CacheSettings>) {
     if (!data) return;
     const newSettings = { ...settings, ...updates };
@@ -57,22 +56,6 @@ export default function CachePage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* Error toast */}
-      {error && (
-        <div className="flex items-center gap-2 bg-[#ff4444]/10 border border-[#ff4444]/20 rounded-2xl px-4 py-3 text-sm text-[#ff4444]">
-          <AlertCircle size={14} />
-          {error}
-        </div>
-      )}
-
-      {/* Saving indicator */}
-      {saving && (
-        <div className="flex items-center gap-2 bg-[#ffaa44]/10 border border-[#ffaa44]/20 rounded-2xl px-4 py-3 text-sm text-[#ffaa44]">
-          <RefreshCw size={13} className="animate-spin" />
-          Changes queued — will save in 2 minutes
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -82,11 +65,9 @@ export default function CachePage() {
           <p className="text-sm text-[#555555] mt-0.5">Identical or similar prompts return instantly at $0 cost.</p>
         </div>
         <div className="flex items-center gap-3">
-          {saving && <span className="text-xs text-[#ffaa44] font-mono">saving...</span>}
           <button onClick={refresh} className="text-[#333333] hover:text-[#888888] transition-colors">
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           </button>
-          {/* Optimistic toggle — instant UI change */}
           <button
             onClick={() => patchSettings({ cacheEnabled: !settings.cacheEnabled })}
             className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-all"
@@ -118,12 +99,9 @@ export default function CachePage() {
         </div>
       )}
 
-      {/* Settings — all optimistic */}
+      {/* Settings */}
       <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Cache Settings</p>
-          {saving && <CheckCircle size={13} className="text-[#ffaa44]" />}
-        </div>
+        <p className="text-sm font-semibold text-white">Cache Settings</p>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">

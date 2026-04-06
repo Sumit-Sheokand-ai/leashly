@@ -6,7 +6,6 @@ import { sendCancellationEmail } from "@/lib/resend";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-03-25.dahlia" });
 
-// Helper — naye Stripe API mein current_period_end subscription item pe hoti hai
 function getPeriodEnd(sub: Stripe.Subscription): number | null {
   return sub.items?.data?.[0]?.current_period_end ?? null;
 }
@@ -16,15 +15,11 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = createSupabaseAdmin();
 
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-
-  const [{ data: userData }, { data: savings }] = await Promise.all([
-    db.from("User").select("billingModel, plan, stripeSubscriptionId, stripeCustomerId, email").eq("id", user.id).single(),
-    db.from("RequestLog").select("totalSavings").eq("userId", user.id).gte("timestamp", startOfMonth),
-  ]);
-
-  const monthlySavings = (savings ?? []).reduce((s, r) => s + (r.totalSavings ?? 0), 0);
-  const usageBasedCost = monthlySavings * 0.1;
+  const { data: userData } = await db
+    .from("User")
+    .select("plan, stripeSubscriptionId, stripeCustomerId, email")
+    .eq("id", user.id)
+    .single();
 
   let subscriptionEndsAt: string | null = null;
   let cancelAtPeriodEnd = false;
@@ -33,21 +28,15 @@ export async function GET() {
       const sub = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
       cancelAtPeriodEnd = sub.cancel_at_period_end;
       const periodEnd = getPeriodEnd(sub);
-      if (periodEnd) {
-        subscriptionEndsAt = new Date(periodEnd * 1000).toISOString();
-      }
+      if (periodEnd) subscriptionEndsAt = new Date(periodEnd * 1000).toISOString();
     } catch {}
   }
 
   return NextResponse.json({
-    billingModel:    userData?.billingModel ?? "flat",
-    currentPlan:     userData?.plan ?? "free",
-    monthlySavings,
-    usageBasedCost,
-    flatCost:        9,
+    currentPlan:      userData?.plan ?? "free",
     subscriptionEndsAt,
     cancelAtPeriodEnd,
-    hasSubscription: !!userData?.stripeSubscriptionId,
+    hasSubscription:  !!userData?.stripeSubscriptionId,
   });
 }
 
@@ -57,20 +46,9 @@ export async function PATCH(req: NextRequest) {
   const db = createSupabaseAdmin();
   const body = await req.json();
 
-  if (body.billingModel) {
-    if (!["flat", "usage_based"].includes(body.billingModel)) {
-      return NextResponse.json({ error: "Invalid billing model" }, { status: 400 });
-    }
-    await db.from("User").update({ billingModel: body.billingModel }).eq("id", user.id);
-    return NextResponse.json({ ok: true, billingModel: body.billingModel });
-  }
-
   if (body.action === "cancel") {
     const { data: userData } = await db
-      .from("User")
-      .select("stripeSubscriptionId, email, plan")
-      .eq("id", user.id)
-      .single();
+      .from("User").select("stripeSubscriptionId, email").eq("id", user.id).single();
 
     if (!userData?.stripeSubscriptionId) {
       await db.from("User").update({ plan: "free" }).eq("id", user.id);
@@ -78,10 +56,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: true, message: "Subscription cancelled. You are now on the free plan." });
     }
 
-    await stripe.subscriptions.update(userData.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
-
+    await stripe.subscriptions.update(userData.stripeSubscriptionId, { cancel_at_period_end: true });
     const sub = await stripe.subscriptions.retrieve(userData.stripeSubscriptionId);
     const periodEnd = getPeriodEnd(sub);
     const endsAt = periodEnd
@@ -94,17 +69,11 @@ export async function PATCH(req: NextRequest) {
 
   if (body.action === "reactivate") {
     const { data: userData } = await db
-      .from("User")
-      .select("stripeSubscriptionId")
-      .eq("id", user.id)
-      .single();
+      .from("User").select("stripeSubscriptionId").eq("id", user.id).single();
 
     if (userData?.stripeSubscriptionId) {
-      await stripe.subscriptions.update(userData.stripeSubscriptionId, {
-        cancel_at_period_end: false,
-      });
+      await stripe.subscriptions.update(userData.stripeSubscriptionId, { cancel_at_period_end: false });
     }
-
     return NextResponse.json({ ok: true, message: "Subscription reactivated." });
   }
 

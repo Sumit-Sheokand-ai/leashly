@@ -50,7 +50,6 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 interface BillingInfo {
   currentPlan: string;
-  billingModel: string;
   subscriptionEndsAt: string | null;
   cancelAtPeriodEnd: boolean;
   hasSubscription: boolean;
@@ -71,7 +70,6 @@ export default function SettingsPage() {
     weekly_digest: false, product_updates: true, security_alerts: true,
   });
 
-  // Proxy settings
   const [proxySettings, setProxySettings] = useState({
     logRequests: true,
     stripSystemPrompts: false,
@@ -98,7 +96,6 @@ export default function SettingsPage() {
     if (saved) { try { setNotifPrefs(JSON.parse(saved)); } catch {} }
     const proxy = localStorage.getItem("leashly_proxy_settings");
     if (proxy) { try { setProxySettings(JSON.parse(proxy)); } catch {} }
-    // Load billing info
     fetch("/api/billing").then(r => r.ok ? r.json() : null).then(d => { if (d) setBilling(d); });
   }, []);
 
@@ -110,7 +107,6 @@ export default function SettingsPage() {
   function saveProxySettings(s: typeof proxySettings) {
     setProxySettings(s);
     localStorage.setItem("leashly_proxy_settings", JSON.stringify(s));
-    // TODO: persist to DB via /api/user/settings PATCH
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -141,7 +137,6 @@ export default function SettingsPage() {
     setCancelMsg(d.message ?? "Subscription cancelled.");
     setCancelling(false);
     setShowCancelConfirm(false);
-    // Refresh billing info
     fetch("/api/billing").then(r => r.ok ? r.json() : null).then(d => { if (d) setBilling(d); });
   }
 
@@ -161,7 +156,7 @@ export default function SettingsPage() {
     return <div className="flex items-center justify-center h-48"><RefreshCw size={20} className="animate-spin text-[#00ff88]" /></div>;
   }
 
-  const isPro = billing?.currentPlan === "pro" || billing?.currentPlan === "usage_based";
+  const isPro = billing?.currentPlan === "pro";
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -170,14 +165,13 @@ export default function SettingsPage() {
         <p className="text-sm text-[#555555] mt-0.5">Manage your account, notifications, proxy settings, and billing</p>
       </div>
 
-      {/* Cancel success message */}
       {cancelMsg && (
         <div className="bg-[#00ff88]/8 border border-[#00ff88]/20 rounded-xl px-4 py-3 text-sm text-[#00ff88]">
           ✓ {cancelMsg}
         </div>
       )}
 
-      {/* ── Account ── */}
+      {/* Account */}
       <Section title="Account" desc="Your profile and login information">
         <Row label="Email address" desc="Used for login and notifications">
           <div className="flex items-center gap-2">
@@ -211,7 +205,7 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
-      {/* ── Password ── */}
+      {/* Password */}
       <Section title="Password" desc="Update your login password">
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -237,7 +231,7 @@ export default function SettingsPage() {
         </form>
       </Section>
 
-      {/* ── Proxy settings ── */}
+      {/* Proxy settings */}
       <Section title="Proxy Settings" desc="Configure how Leashly handles requests">
         <Row label="Log all requests" desc="Store request metadata (tokens, cost, model) in your logs">
           <Toggle checked={proxySettings.logRequests} onChange={v => saveProxySettings({ ...proxySettings, logRequests: v })} />
@@ -256,7 +250,7 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
-      {/* ── Notifications ── */}
+      {/* Notifications */}
       <Section title="Notification Preferences" desc="Choose which events trigger email notifications">
         <Row label="Spend threshold alerts" desc="Email when a spend alert fires">
           <Toggle checked={notifPrefs.spend_alerts} onChange={v => saveNotifPrefs({ ...notifPrefs, spend_alerts: v })} />
@@ -278,7 +272,7 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
-      {/* ── Security ── */}
+      {/* Security */}
       <Section title="Security" desc="Protect your account and API keys">
         <Row label="Active sessions" desc="Sign out of all devices">
           <button onClick={handleSignOut}
@@ -299,12 +293,12 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
-      {/* ── Billing ── */}
+      {/* Subscription — Pro only */}
       {isPro && billing && (
         <Section title="Subscription" desc="Manage your Leashly Pro subscription">
           <Row label="Current plan">
-            <span className="text-xs font-mono text-[#00ff88] bg-[#00ff88]/10 border border-[#00ff88]/20 px-2 py-0.5 rounded-full capitalize">
-              {billing.currentPlan === "usage_based" ? "Pay As You Save" : "Pro"}
+            <span className="text-xs font-mono text-[#00ff88] bg-[#00ff88]/10 border border-[#00ff88]/20 px-2 py-0.5 rounded-full">
+              Pro
             </span>
           </Row>
           {billing.cancelAtPeriodEnd && billing.subscriptionEndsAt && (
@@ -317,11 +311,11 @@ export default function SettingsPage() {
           <Row label="Billing settings" desc="Change plan or view invoices">
             <Link href="/dashboard/billing"
               className="flex items-center gap-1.5 text-xs text-[#888888] hover:text-white border border-[#222222] hover:border-[#333333] px-3 py-1.5 rounded-lg transition-all">
-              Manage billing <CreditCard size={11} />
+              Manage <CreditCard size={11} />
             </Link>
           </Row>
           <Row label={billing.cancelAtPeriodEnd ? "Subscription cancelling" : "Cancel subscription"}
-            desc={billing.cancelAtPeriodEnd ? "Your subscription is set to cancel at the end of the billing period." : "Cancel at end of current billing period. No immediate charge."}>
+            desc={billing.cancelAtPeriodEnd ? "Set to cancel at end of billing period." : "Cancel at end of current billing period."}>
             {billing.cancelAtPeriodEnd ? (
               <button onClick={handleReactivate}
                 className="text-xs text-[#00ff88] border border-[#00ff88]/25 hover:bg-[#00ff88]/8 px-3 py-1.5 rounded-lg transition-all">
@@ -335,7 +329,6 @@ export default function SettingsPage() {
             )}
           </Row>
 
-          {/* Cancel confirmation */}
           {showCancelConfirm && (
             <div className="mt-4 bg-[#ff4444]/6 border border-[#ff4444]/20 rounded-xl p-4 space-y-3">
               <div className="flex items-start gap-2">
@@ -343,15 +336,14 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm text-[#ff6666] font-medium">Cancel Leashly Pro?</p>
                   <p className="text-xs text-[#888888] mt-1 leading-relaxed">
-                    You'll keep Pro access until the end of your billing period.
-                    After that, you'll be moved to the free plan (2 keys, 2 rules, no workspace).
+                    You&apos;ll keep Pro access until the end of your billing period, then move to the free plan.
                   </p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={handleCancelSubscription} disabled={cancelling}
                   className="text-xs text-white bg-[#ff4444] hover:bg-[#dd3333] px-4 py-2 rounded-lg transition-all disabled:opacity-50">
-                  {cancelling ? "Cancelling…" : "Yes, cancel my subscription"}
+                  {cancelling ? "Cancelling…" : "Yes, cancel"}
                 </button>
                 <button onClick={() => setShowCancelConfirm(false)}
                   className="text-xs text-[#888888] hover:text-white border border-[#222222] px-4 py-2 rounded-lg transition-all">
@@ -363,7 +355,7 @@ export default function SettingsPage() {
         </Section>
       )}
 
-      {/* ── Quick links ── */}
+      {/* More */}
       <Section title="More" desc="Useful links and resources">
         <Row label="Documentation" desc="Guides, API reference, and integration examples">
           <a href="/docs" className="flex items-center gap-1.5 text-xs text-[#888888] hover:text-white border border-[#222222] hover:border-[#333333] px-3 py-1.5 rounded-lg transition-all">
@@ -377,13 +369,13 @@ export default function SettingsPage() {
           <Link href="/terms" className="text-xs text-[#555555] hover:text-[#888888] transition-colors">Read →</Link>
         </Row>
         <Row label="Support" desc="We reply to every email">
-          <a href="mailto:hello@leashly.dev" className="text-xs text-[#555555] hover:text-[#00ff88] transition-colors flex items-center gap-1">
-            hello@leashly.dev <Mail size={11} />
+          <a href="mailto:support@leashly.dev" className="text-xs text-[#555555] hover:text-[#00ff88] transition-colors flex items-center gap-1">
+            support@leashly.dev <Mail size={11} />
           </a>
         </Row>
       </Section>
 
-      {/* ── Danger Zone ── */}
+      {/* Danger Zone */}
       <div className="bg-[#0e0e0e] border border-[#2a1515] rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-[#1f1111]">
           <h3 className="text-sm font-semibold text-[#ff6666]">Danger Zone</h3>

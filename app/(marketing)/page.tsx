@@ -424,7 +424,7 @@ export default function LandingPage() {
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Simple pricing.</h2>
             <p className="text-[var(--text-dim)]">Saves itself in the first week.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-5 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-5 max-w-2xl mx-auto">
             <div className="card p-6">
               <h3 className="font-mono font-bold text-white mb-1">Free</h3>
               <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">$0</span><span className="text-[var(--text-dim)] text-sm mb-1">/mo</span></div>
@@ -447,17 +447,6 @@ export default function LandingPage() {
                 ))}
               </ul>
               <a href={STRIPE_PRO_LINK} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full justify-center">Upgrade to Pro →</a>
-            </div>
-            <div className="card p-6" style={{borderColor:"rgba(68,136,255,0.25)"}}>
-              <h3 className="font-mono font-bold text-white mb-1">Pay As You Save</h3>
-              <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">10%</span><span className="text-[var(--text-dim)] text-sm mb-1"> of savings</span></div>
-              <p className="text-xs text-[var(--text-ghost)] mb-5">Zero risk — you always win</p>
-              <ul className="space-y-2.5 mb-6">
-                {["No monthly fee","Everything in Pro","Pay only on savings","Perfect for high volume"].map(f=>(
-                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]"><span className="text-[var(--blue)] mt-0.5 shrink-0">✓</span>{f}</li>
-                ))}
-              </ul>
-              <Link href="/login?redirect=/dashboard/billing" className="btn btn-ghost w-full justify-center" style={{borderColor:"rgba(68,136,255,0.3)",color:"var(--blue)"}}>Get started →</Link>
             </div>
           </div>
           <p className="text-center text-xs text-[var(--text-ghost)] font-mono mt-8">

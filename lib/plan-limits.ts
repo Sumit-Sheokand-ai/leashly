@@ -1,6 +1,4 @@
 // lib/plan-limits.ts
-// Single source of truth for all plan limits
-
 export const PLAN_LIMITS = {
   free: {
     apiKeys:       2,
@@ -22,20 +20,10 @@ export const PLAN_LIMITS = {
     cache:         true,
     requestsMonth: Infinity,
   },
-  usage_based: {
-    apiKeys:       30,
-    rules:         30,
-    alertRules:    30,
-    teamMembers:   10,
-    workspaces:    30,
-    workspace:     true,
-    cache:         true,
-    requestsMonth: Infinity,
-  },
 } as const;
 
 export type Plan = keyof typeof PLAN_LIMITS;
 
 export function isPro(plan: string): boolean {
-  return plan === "pro" || plan === "usage_based";
+  return plan === "pro";
 }

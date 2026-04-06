@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { CreditCard, TrendingDown, Zap, RefreshCw, CheckCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { CreditCard, RefreshCw, CheckCircle, AlertTriangle, Zap, ExternalLink } from "lucide-react";
 import { useDashboardData } from "@/lib/use-dashboard-data";
 
 interface BillingData {
-  billingModel: string; currentPlan: string;
-  monthlySavings: number; usageBasedCost: number; flatCost: number;
-  subscriptionEndsAt: string | null; cancelAtPeriodEnd: boolean; hasSubscription: boolean;
+  currentPlan: string;
+  subscriptionEndsAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  hasSubscription: boolean;
 }
 
+const STRIPE_PRO_LINK = "https://buy.stripe.com/3cI5kFfIBf0z3lLbh59Ve0a";
+
 export default function BillingPage() {
+  const searchParams = useSearchParams();
   const fetcher = useCallback(async (): Promise<BillingData> => {
     const res = await fetch("/api/billing");
     if (!res.ok) throw new Error("Failed");
@@ -19,36 +24,23 @@ export default function BillingPage() {
 
   const { data, loading, refresh } = useDashboardData<BillingData>("dashboard:billing", fetcher);
 
-  const [switching, setSwitching]   = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [msg, setMsg]               = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [cancelling, setCancelling]               = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // Instant API call — no debounce
-  async function switchModel(model: string) {
-    if (data?.billingModel === model) return;
-    setSwitching(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/billing", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingModel: model }),
-      });
-      if (res.ok) {
-        setMsg({ text: `Switched to ${model === "flat" ? "Flat Plan" : "Pay As You Save"}.`, type: "success" });
-        refresh(); // instant refresh
-      } else {
-        setMsg({ text: "Failed to switch plan.", type: "error" });
-      }
-    } catch {
-      setMsg({ text: "Network error.", type: "error" });
+  useEffect(() => {
+    if (searchParams.get("success") === "1") {
+      setMsg({ text: "Payment successful! Your Pro plan is now active.", type: "success" });
+      refresh();
     }
-    setSwitching(false);
-  }
+    if (searchParams.get("cancelled") === "1") {
+      setMsg({ text: "Payment cancelled.", type: "error" });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function cancelSubscription() {
     setCancelling(true);
-    setMsg(null);
     try {
       const res = await fetch("/api/billing", {
         method: "PATCH",
@@ -56,16 +48,14 @@ export default function BillingPage() {
         body: JSON.stringify({ action: "cancel" }),
       });
       const d = await res.json();
-      setMsg({ text: d.message ?? "Subscription cancelled.", type: res.ok ? "success" : "error" });
+      setMsg({ text: d.message ?? "Cancelled.", type: res.ok ? "success" : "error" });
+      setShowCancelConfirm(false);
       refresh();
-    } catch {
-      setMsg({ text: "Network error.", type: "error" });
-    }
+    } catch { setMsg({ text: "Network error.", type: "error" }); }
     setCancelling(false);
   }
 
   async function reactivate() {
-    setMsg(null);
     try {
       const res = await fetch("/api/billing", {
         method: "PATCH",
@@ -75,9 +65,7 @@ export default function BillingPage() {
       const d = await res.json();
       setMsg({ text: d.message ?? "Reactivated.", type: res.ok ? "success" : "error" });
       refresh();
-    } catch {
-      setMsg({ text: "Network error.", type: "error" });
-    }
+    } catch { setMsg({ text: "Network error.", type: "error" }); }
   }
 
   if (loading && !data) return (
@@ -86,17 +74,18 @@ export default function BillingPage() {
     </div>
   );
 
-  const isUsageBased = data?.billingModel === "usage_based";
-  const betterPlan   = data ? (data.usageBasedCost < data.flatCost ? "usage_based" : "flat") : null;
-  const isPro        = data?.currentPlan === "pro" || data?.currentPlan === "usage_based";
+  const isPro = data?.currentPlan === "pro";
+  const isFree = !isPro;
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-xl space-y-5">
       <div>
         <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2">
           <CreditCard size={18} className="text-[#888888]" /> Billing
         </h2>
-        <p className="text-sm text-[#555555] mt-0.5">Choose how you pay for Leashly.</p>
+        <p className="text-sm text-[#555555] mt-0.5">
+          {isPro ? "You're on the Pro plan." : "Upgrade to Pro to unlock all features."}
+        </p>
       </div>
 
       {/* Status message */}
@@ -106,8 +95,9 @@ export default function BillingPage() {
             ? "bg-[#00ff88]/8 border-[#00ff88]/20 text-[#00ff88]"
             : "bg-[#ff4444]/8 border-[#ff4444]/20 text-[#ff4444]"
         }`}>
-          {msg.type === "success" && <CheckCircle size={14} />}
+          {msg.type === "success" ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
           {msg.text}
+          <button onClick={() => setMsg(null)} className="ml-auto opacity-50 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -115,7 +105,9 @@ export default function BillingPage() {
       {data?.cancelAtPeriodEnd && data.subscriptionEndsAt && (
         <div className="rounded-2xl border border-[#ffaa44]/20 bg-[#ffaa44]/5 px-4 py-3 flex items-center justify-between gap-4">
           <p className="text-sm text-[#ffaa44]">
-            Subscription cancels on {new Date(data.subscriptionEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
+            Pro access ends {new Date(data.subscriptionEndsAt).toLocaleDateString("en-US", {
+              month: "long", day: "numeric", year: "numeric"
+            })}.
           </p>
           <button onClick={reactivate}
             className="text-xs font-semibold text-[#00ff88] border border-[#00ff88]/25 hover:bg-[#00ff88]/8 px-3 py-1.5 rounded-xl transition-all shrink-0">
@@ -125,95 +117,101 @@ export default function BillingPage() {
       )}
 
       {/* Plan cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Flat */}
-        <button onClick={() => switchModel("flat")} disabled={switching}
-          className={`rounded-2xl border p-5 space-y-3 text-left transition-all disabled:opacity-60 ${
-            !isUsageBased
-              ? "border-white/20 bg-[#111111]"
-              : "border-[#1a1a1a] bg-[#0e0e0e] hover:border-[#2a2a2a]"
-          }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard size={15} className="text-[#888888]" />
-              <span className="font-semibold text-white text-sm">Flat Plan</span>
-            </div>
-            {!isUsageBased && (
-              <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full font-mono">Current</span>
-            )}
-          </div>
-          <div><span className="font-mono text-3xl font-bold text-white">$9</span><span className="text-[#555555] text-sm"> CAD/mo</span></div>
-          <p className="text-xs text-[#555555]">Fixed monthly cost. Predictable billing regardless of usage.</p>
-          {betterPlan === "flat" && <p className="text-xs text-[#00ff88]">✓ Better for your usage</p>}
-        </button>
+      <div className="grid grid-cols-2 gap-4">
 
-        {/* Usage-based */}
-        <button onClick={() => switchModel("usage_based")} disabled={switching}
-          className={`rounded-2xl border p-5 space-y-3 text-left transition-all disabled:opacity-60 ${
-            isUsageBased
-              ? "border-[#00ff88]/30 bg-[#00ff88]/5"
-              : "border-[#1a1a1a] bg-[#0e0e0e] hover:border-[#2a2a2a]"
-          }`}>
+        {/* Free */}
+        <div className={`rounded-2xl border p-5 space-y-4 ${
+          isFree ? "border-white/15 bg-[#111111]" : "border-[#1a1a1a] bg-[#0e0e0e] opacity-50"
+        }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingDown size={15} className="text-[#00ff88]" />
-              <span className="font-semibold text-white text-sm">Pay As You Save</span>
-            </div>
-            {isUsageBased && (
-              <span className="text-[10px] bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded-full font-mono">Current</span>
-            )}
+            <span className="font-mono font-bold text-white">Free</span>
+            {isFree && <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full font-mono">Current</span>}
           </div>
-          <div><span className="font-mono text-3xl font-bold text-white">10%</span><span className="text-[#555555] text-sm"> of savings</span></div>
-          <p className="text-xs text-[#555555]">No monthly fee. Leashly takes 10% of what it saves you — you always come out ahead.</p>
-          {betterPlan === "usage_based" && <p className="text-xs text-[#00ff88]">✓ Better for your usage</p>}
-        </button>
+          <div>
+            <span className="font-mono text-3xl font-bold text-white">$0</span>
+            <span className="text-[#555555] text-sm"> /mo</span>
+          </div>
+          <ul className="space-y-2">
+            {["10,000 requests/mo", "2 API keys", "2 rules & 2 alerts", "7-day log retention"].map(f => (
+              <li key={f} className="flex items-start gap-2 text-xs text-[#555555]">
+                <span className="text-[#333333] shrink-0 mt-0.5">✓</span>{f}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Pro */}
+        <div className={`rounded-2xl border p-5 space-y-4 relative ${
+          isPro ? "border-[#00ff88]/30 bg-[#00ff88]/5" : "border-[#1a1a1a] bg-[#0e0e0e]"
+        }`} style={isPro ? { boxShadow: "0 0 40px rgba(0,255,136,0.06)" } : {}}>
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+            <span className="text-[9px] bg-[#00ff88] text-black font-bold px-2.5 py-0.5 rounded-full">RECOMMENDED</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono font-bold text-white">Pro</span>
+            {isPro && <span className="text-[10px] bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded-full font-mono">Current</span>}
+          </div>
+          <div>
+            <span className="font-mono text-3xl font-bold text-white">$9</span>
+            <span className="text-[#555555] text-sm"> CAD/mo</span>
+          </div>
+          <ul className="space-y-2">
+            {["Unlimited requests", "30 API keys & rules", "Semantic cache", "90-day log retention", "Email alerts", "Workspace (10 members)"].map(f => (
+              <li key={f} className="flex items-start gap-2 text-xs text-[#888888]">
+                <span className="text-[#00ff88] shrink-0 mt-0.5">✓</span>{f}
+              </li>
+            ))}
+          </ul>
+
+          {/* Upgrade button — free users only */}
+          {isFree && (
+            <a href={STRIPE_PRO_LINK} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 w-full bg-[#00ff88] hover:bg-[#00dd77] text-black text-sm font-bold py-2.5 rounded-xl transition-all">
+              <Zap size={13} /> Upgrade to Pro <ExternalLink size={11} />
+            </a>
+          )}
+        </div>
       </div>
 
-      {/* This month calculator */}
-      {data && (
-        <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5 space-y-4">
-          <p className="text-sm font-semibold text-white flex items-center gap-2">
-            <Zap size={14} className="text-[#ffaa44]" /> This month&apos;s estimate
-          </p>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-[#444444] mb-1">Savings generated</p>
-              <p className="text-white font-mono font-medium">${data.monthlySavings.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#444444] mb-1">Under flat plan</p>
-              <p className="text-white font-mono font-medium">$9.00 CAD</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#444444] mb-1">Under usage-based</p>
-              <p className={`font-mono font-medium ${data.usageBasedCost < 9 ? "text-[#00ff88]" : "text-white"}`}>
-                ${data.usageBasedCost.toFixed(2)}
-                {data.usageBasedCost < 9 && (
-                  <span className="text-xs ml-1 text-[#00ff88]">(save ${(9 - data.usageBasedCost).toFixed(2)})</span>
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-[#444444] mb-1">Recommended</p>
-              <p className="text-[#00ff88] font-medium text-sm">
-                {betterPlan === "usage_based" ? "Pay As You Save" : "Flat Plan"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel subscription — Pro only */}
+      {/* Cancel subscription — Pro only, not already cancelling */}
       {isPro && !data?.cancelAtPeriodEnd && (
-        <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white">Cancel subscription</p>
-            <p className="text-xs text-[#444444] mt-0.5">Access continues until end of billing period. No immediate charge.</p>
-          </div>
-          <button onClick={cancelSubscription} disabled={cancelling}
-            className="text-xs text-[#888888] hover:text-[#ff6666] border border-[#222222] hover:border-[#ff4444]/30 px-3 py-1.5 rounded-xl transition-all disabled:opacity-50 shrink-0">
-            {cancelling ? "Cancelling…" : "Cancel plan"}
-          </button>
+        <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5">
+          {!showCancelConfirm ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white">Cancel subscription</p>
+                <p className="text-xs text-[#444444] mt-0.5">
+                  You&apos;ll keep Pro access until the end of your billing period.
+                </p>
+              </div>
+              <button onClick={() => setShowCancelConfirm(true)}
+                className="text-xs text-[#888888] hover:text-[#ff6666] border border-[#222222] hover:border-[#ff4444]/30 px-3 py-1.5 rounded-xl transition-all shrink-0">
+                Cancel plan
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="text-[#ff6666] mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-[#ff6666] font-medium">Cancel Leashly Pro?</p>
+                  <p className="text-xs text-[#888888] mt-1 leading-relaxed">
+                    You&apos;ll keep Pro access until your billing period ends, then move to the free plan (2 keys, 2 rules, no workspace).
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={cancelSubscription} disabled={cancelling}
+                  className="text-xs text-white bg-[#ff4444] hover:bg-[#dd3333] px-4 py-2 rounded-xl transition-all disabled:opacity-50">
+                  {cancelling ? "Cancelling…" : "Yes, cancel"}
+                </button>
+                <button onClick={() => setShowCancelConfirm(false)}
+                  className="text-xs text-[#888888] hover:text-white border border-[#222222] px-4 py-2 rounded-xl transition-all">
+                  Keep Pro
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

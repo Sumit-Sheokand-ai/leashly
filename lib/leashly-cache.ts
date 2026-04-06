@@ -23,6 +23,13 @@ function messagesToText(messages: Array<{ role: string; content: string }>): str
   return messages.map((m) => `${m.role}: ${m.content}`).join("\n");
 }
 
+async function safeIncrementHits(id: string): Promise<void> {
+  try {
+    const db = createSupabaseAdmin();
+    await db.rpc("increment_cache_hits", { p_id: id });
+  } catch {}
+}
+
 export interface CacheHit {
   response: unknown;
   cacheId: string;
@@ -49,8 +56,7 @@ export async function checkCache(
     .maybeSingle();
 
   if (exact) {
-    // increment_cache_hits via raw SQL — avoids .catch() type issue
-    db.rpc("increment_cache_hits", { p_id: exact.id }).then(() => {}).catch(() => {});
+    void safeIncrementHits(exact.id);
     return { response: exact.response, cacheId: exact.id, savedCost: estimatedCost };
   }
 
@@ -79,7 +85,7 @@ export async function checkCache(
   if (!matches?.length) return null;
 
   const match = matches[0];
-  db.rpc("increment_cache_hits", { p_id: match.id }).then(() => {}).catch(() => {});
+  void safeIncrementHits(match.id);
 
   return { response: match.response, cacheId: match.id, savedCost: estimatedCost };
 }

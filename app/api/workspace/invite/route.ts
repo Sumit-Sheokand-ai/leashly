@@ -28,9 +28,11 @@ export async function POST(req: NextRequest) {
     await db.from("WorkspaceMember").insert({ workspaceId, userId: invitedUser.id, role });
   }
 
-  // Send invite email via existing resend setup
   const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://leashly.dev"}/invite?workspace=${workspaceId}&email=${encodeURIComponent(email)}`;
-  const wsName = (membership.workspace as { name: string })?.name ?? "a workspace";
+
+  // Fix: access workspace name safely
+  const ws = membership.workspace as unknown as { name: string } | null;
+  const wsName = ws?.name ?? "a workspace";
 
   await sendAlertEmail(email, "workspace_invite",
     `You've been invited to join "${wsName}" on Leashly. Accept here: ${inviteLink}`

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Database, Trash2, ToggleLeft, ToggleRight, RefreshCw } from "lucide-react";
+import { Database, Trash2, ToggleLeft, ToggleRight, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { useDashboardData } from "@/lib/use-dashboard-data";
 
 interface CacheStats { totalEntries: number; totalHits: number; hitRate: number; moneySaved: number; }
@@ -18,18 +18,28 @@ export default function CachePage() {
     return res.json();
   }, []);
 
-  const { data, loading, invalidate } = useDashboardData<CacheData>("dashboard:cache", fetcher);
+  const { data, loading, saving, error, optimisticUpdate, invalidate, refresh } =
+    useDashboardData<CacheData>("dashboard:cache", fetcher);
 
   const stats    = data?.stats;
   const entries  = data?.topEntries ?? [];
   const settings = data?.settings ?? { cacheEnabled: true, cacheTtlHours: 24, similarityThreshold: 0.97 };
 
-  const [flushing, setFlushing]     = useState(false);
-  const [threshold, setThreshold]   = useState(settings.similarityThreshold);
+  const [flushing, setFlushing]   = useState(false);
+  const [threshold, setThreshold] = useState(settings.similarityThreshold);
 
-  async function patchSettings(updates: Partial<CacheSettings>) {
-    await fetch("/api/proxy/cache", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
-    invalidate();
+  // Optimistic settings update — UI changes instantly, API call in 2 minutes
+  function patchSettings(updates: Partial<CacheSettings>) {
+    if (!data) return;
+    const newSettings = { ...settings, ...updates };
+    optimisticUpdate(
+      { ...data, settings: newSettings },
+      () => fetch("/api/proxy/cache", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+    );
   }
 
   async function flushCache() {
@@ -39,21 +49,56 @@ export default function CachePage() {
     invalidate();
   }
 
-  if (loading && !data) return <div className="flex items-center justify-center h-48"><RefreshCw className="animate-spin text-[#00ff88]" size={20} /></div>;
+  if (loading && !data) return (
+    <div className="flex items-center justify-center h-48">
+      <RefreshCw className="animate-spin text-[#00ff88]" size={20} />
+    </div>
+  );
 
   return (
     <div className="max-w-3xl space-y-6">
+      {/* Error toast */}
+      {error && (
+        <div className="flex items-center gap-2 bg-[#ff4444]/10 border border-[#ff4444]/20 rounded-2xl px-4 py-3 text-sm text-[#ff4444]">
+          <AlertCircle size={14} />
+          {error}
+        </div>
+      )}
+
+      {/* Saving indicator */}
+      {saving && (
+        <div className="flex items-center gap-2 bg-[#ffaa44]/10 border border-[#ffaa44]/20 rounded-2xl px-4 py-3 text-sm text-[#ffaa44]">
+          <RefreshCw size={13} className="animate-spin" />
+          Changes queued — will save in 2 minutes
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2"><Database size={18} className="text-[#aa66ff]" /> Semantic Cache</h2>
+          <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2">
+            <Database size={18} className="text-[#aa66ff]" /> Semantic Cache
+          </h2>
           <p className="text-sm text-[#555555] mt-0.5">Identical or similar prompts return instantly at $0 cost.</p>
         </div>
-        <button onClick={() => patchSettings({ cacheEnabled: !settings.cacheEnabled })}
-          className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-all">
-          {settings.cacheEnabled ? <ToggleRight size={24} className="text-[#00ff88]" /> : <ToggleLeft size={24} className="text-[#333333]" />}
-          <span className={settings.cacheEnabled ? "text-[#00ff88]" : "text-[#555555]"}>{settings.cacheEnabled ? "Enabled" : "Disabled"}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {saving && <span className="text-xs text-[#ffaa44] font-mono">saving...</span>}
+          <button onClick={refresh} className="text-[#333333] hover:text-[#888888] transition-colors">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+          {/* Optimistic toggle — instant UI change */}
+          <button
+            onClick={() => patchSettings({ cacheEnabled: !settings.cacheEnabled })}
+            className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-all"
+          >
+            {settings.cacheEnabled
+              ? <ToggleRight size={24} className="text-[#00ff88]" />
+              : <ToggleLeft  size={24} className="text-[#333333]" />}
+            <span className={settings.cacheEnabled ? "text-[#00ff88]" : "text-[#555555]"}>
+              {settings.cacheEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -73,26 +118,40 @@ export default function CachePage() {
         </div>
       )}
 
-      {/* Settings */}
+      {/* Settings — all optimistic */}
       <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5 space-y-5">
-        <p className="text-sm font-semibold text-white">Cache Settings</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-white">Cache Settings</p>
+          {saving && <CheckCircle size={13} className="text-[#ffaa44]" />}
+        </div>
+
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-sm text-[#888888]">Similarity threshold: <span className="text-white font-mono">{threshold.toFixed(2)}</span></label>
+            <label className="text-sm text-[#888888]">
+              Similarity threshold: <span className="text-white font-mono">{threshold.toFixed(2)}</span>
+            </label>
             <span className="text-xs text-[#333333]">0.90 loose · 0.99 strict</span>
           </div>
-          <input type="range" min={0.90} max={0.99} step={0.01} value={threshold}
+          <input
+            type="range" min={0.90} max={0.99} step={0.01} value={threshold}
             onChange={e => setThreshold(parseFloat(e.target.value))}
             onMouseUp={() => patchSettings({ similarityThreshold: threshold })}
             onTouchEnd={() => patchSettings({ similarityThreshold: threshold })}
-            className="w-full accent-[#aa66ff]" />
+            className="w-full accent-[#aa66ff]"
+          />
         </div>
+
         <div className="space-y-1.5">
           <label className="text-sm text-[#888888]">Cache TTL</label>
           <div className="flex flex-wrap gap-2">
             {TTL_OPTIONS.map(h => (
-              <button key={h} onClick={() => patchSettings({ cacheTtlHours: h })}
-                className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${settings.cacheTtlHours === h ? "bg-[#aa66ff]/20 text-[#aa66ff] border border-[#aa66ff]/30" : "bg-[#1a1a1a] text-[#555555] hover:text-white border border-transparent"}`}>
+              <button key={h}
+                onClick={() => patchSettings({ cacheTtlHours: h })}
+                className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
+                  settings.cacheTtlHours === h
+                    ? "bg-[#aa66ff]/20 text-[#aa66ff] border border-[#aa66ff]/30"
+                    : "bg-[#1a1a1a] text-[#555555] hover:text-white border border-transparent"
+                }`}>
                 {h}h
               </button>
             ))}
@@ -104,13 +163,17 @@ export default function CachePage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-[#888888]">Top Cached Prompts</p>
-          <button onClick={flushCache} disabled={flushing || entries.length === 0}
+          <button
+            onClick={flushCache}
+            disabled={flushing || entries.length === 0}
             className="flex items-center gap-1.5 rounded-xl border border-[#ff4444]/20 px-3 py-1.5 text-xs text-[#ff4444] hover:border-[#ff4444]/50 disabled:opacity-40 transition-all">
             <Trash2 size={13} /> {flushing ? "Flushing..." : "Flush cache"}
           </button>
         </div>
 
-        {entries.length === 0 && <p className="text-sm text-[#333333] py-4">No cache entries yet.</p>}
+        {entries.length === 0 && (
+          <p className="text-sm text-[#333333] py-4">No cache entries yet.</p>
+        )}
 
         {entries.map(entry => (
           <div key={entry.id} className="flex items-center justify-between bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl px-4 py-3">

@@ -3,25 +3,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Key, Shield, ScrollText, Bell, Settings, BarChart2, Zap, Database, FlaskConical, Users, CreditCard } from "lucide-react";
+import { LayoutDashboard, Key, Shield, ScrollText, Bell, Settings, BarChart2, Database, Users, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",            label: "Overview",   icon: LayoutDashboard },
-  { href: "/dashboard/analytics",  label: "Analytics",  icon: BarChart2 },
-  { href: "/dashboard/keys",       label: "API Keys",   icon: Key },
-  { href: "/dashboard/rules",      label: "Rules",      icon: Shield },
-  // New upgrade features
-  { href: "/dashboard/routing",    label: "Routing",    icon: Zap,          badge: "new" },
-  { href: "/dashboard/cache",      label: "Cache",      icon: Database,     badge: "new" },
-  { href: "/dashboard/benchmark",  label: "Benchmark",  icon: FlaskConical, badge: "new" },
-  // Existing
-  { href: "/dashboard/logs",       label: "Logs",       icon: ScrollText },
-  { href: "/dashboard/alerts",     label: "Alerts",     icon: Bell },
-  // New
-  { href: "/dashboard/workspace",  label: "Workspace",  icon: Users,        badge: "new" },
-  { href: "/dashboard/settings",   label: "Settings",   icon: Settings },
-  { href: "/dashboard/billing",    label: "Billing",    icon: CreditCard,   badge: "new" },
+  { href: "/dashboard",           label: "Overview",  icon: LayoutDashboard },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/dashboard/keys",      label: "API Keys",  icon: Key },
+  { href: "/dashboard/rules",     label: "Rules",     icon: Shield },
+  { href: "/dashboard/cache",     label: "Cache",     icon: Database,  badge: "new" },
+  { href: "/dashboard/logs",      label: "Logs",      icon: ScrollText },
+  { href: "/dashboard/alerts",    label: "Alerts",    icon: Bell },
+  { href: "/dashboard/workspace", label: "Workspace", icon: Users,     badge: "new" },
+  { href: "/dashboard/settings",  label: "Settings",  icon: Settings },
+  { href: "/dashboard/billing",   label: "Billing",   icon: CreditCard, badge: "new" },
 ];
 
 export function Sidebar({ flaggedCount = 0 }: { flaggedCount?: number }) {
@@ -29,14 +24,12 @@ export function Sidebar({ flaggedCount = 0 }: { flaggedCount?: number }) {
 
   return (
     <aside className="fixed left-0 top-0 h-full w-[220px] bg-[#080808] border-r border-[#111111] flex flex-col z-40">
-      {/* Logo */}
       <div className="h-14 flex items-center px-5 border-b border-[#111111]">
         <Link href="/dashboard" className="flex items-center">
           <Image src="/logo.svg" alt="Leashly" width={112} height={28} priority />
         </Link>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ href, label, icon: Icon, badge }) => {
           const isActive = href === "/dashboard"
@@ -71,7 +64,6 @@ export function Sidebar({ flaggedCount = 0 }: { flaggedCount?: number }) {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="px-5 py-4 border-t border-[#111111]">
         <p className="text-[10px] text-[#222222] font-mono">v0.2.0</p>
       </div>

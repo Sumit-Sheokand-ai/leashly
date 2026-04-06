@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Script from "next/script";
+import { CookieConsent } from "@/components/layout/cookie-consent";
 
 export const metadata: Metadata = {
   title: "Leashly — AI Cost Control & Optimization Proxy",
   description:
-    "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection — and now actively cuts your AI bill with smart routing, semantic caching, and prompt compression.",
+    "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection — and actively cuts your AI bill with smart routing, semantic caching, and prompt compression.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -44,7 +45,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         />
       </head>
       <body className="antialiased bg-[#0a0a0a] text-[#f0f0f0]">
-        {/* GTM noscript */}
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-WNKK8SWN"
@@ -53,19 +53,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         {children}
-        {/* Google Analytics (gtag.js) */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-DMXRLQSK33"
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-DMXRLQSK33');
-          `}
-        </Script>
+        <CookieConsent />
+        {/* Google Analytics */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-DMXRLQSK33" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-DMXRLQSK33');
+        `}</Script>
       </body>
     </html>
   );

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSessionUser } from "@/lib/session";
-import { isPro } from "@/lib/plan-limits";
+import { isPro, PLAN_LIMITS } from "@/lib/plan-limits";
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = createSupabaseAdmin();
 
-  // Check plan
   const { data: userData } = await db.from("User").select("plan").eq("id", user.id).single();
   if (!isPro(userData?.plan ?? "free")) {
     return NextResponse.json({ error: "Workspace is a Pro feature.", code: "PRO_REQUIRED" }, { status: 403 });
@@ -28,8 +27,25 @@ export async function POST(req: NextRequest) {
   const db = createSupabaseAdmin();
 
   const { data: userData } = await db.from("User").select("plan").eq("id", user.id).single();
-  if (!isPro(userData?.plan ?? "free")) {
+  const plan = (userData?.plan ?? "free") as keyof typeof PLAN_LIMITS;
+
+  if (!isPro(plan)) {
     return NextResponse.json({ error: "Workspace is a Pro feature.", code: "PRO_REQUIRED" }, { status: 403 });
+  }
+
+  // Check workspace count limit
+  const { count } = await db
+    .from("WorkspaceMember")
+    .select("id", { count: "exact", head: true })
+    .eq("userId", user.id)
+    .eq("role", "owner");
+
+  const limit = PLAN_LIMITS[plan]?.workspaces ?? 0;
+  if ((count ?? 0) >= limit) {
+    return NextResponse.json({
+      error: `You've reached the ${limit} workspace limit on your plan.`,
+      code: "LIMIT_REACHED",
+    }, { status: 403 });
   }
 
   const { name } = await req.json();

@@ -457,7 +457,7 @@ export default function LandingPage() {
                   <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]"><span className="text-[var(--blue)] mt-0.5 shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
-              <Link href="/register" className="btn btn-ghost w-full justify-center" style={{borderColor:"rgba(68,136,255,0.3)",color:"var(--blue)"}}>Get started →</Link>
+              <Link href="/login?redirect=/dashboard/billing" className="btn btn-ghost w-full justify-center" style={{borderColor:"rgba(68,136,255,0.3)",color:"var(--blue)"}}>Get started →</Link>
             </div>
           </div>
           <p className="text-center text-xs text-[var(--text-ghost)] font-mono mt-8">

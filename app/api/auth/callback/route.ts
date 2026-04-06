@@ -5,8 +5,9 @@ import { SUPABASE_COOKIE_MAX_AGE } from "@/lib/supabase/config";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const code     = searchParams.get("code");
+  const redirect = searchParams.get("redirect");
+  const next     = redirect ?? searchParams.get("next") ?? "/dashboard";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
@@ -41,7 +42,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=no_email`);
   }
 
-  // Sync user to Prisma DB — wrapped in try/catch so auth still works even if DB is misconfigured
   try {
     const { prisma } = await import("@/lib/prisma");
     const existing = await prisma.user.findUnique({ where: { id: supabaseId } });
@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
       );
     }
   } catch (dbError) {
-    // Log but don't block auth — user can still access app even if DB sync fails
     console.error("DB sync error in auth callback:", dbError);
   }
 

@@ -17,6 +17,9 @@ export default function LoginPage() {
 
   const supabase = createSupabaseBrowserClient();
 
+  // Where to go after login — default dashboard
+  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+
   useEffect(() => {
     if (searchParams.get("registered") === "1") {
       setSuccess("Account created! Check your email to confirm, then sign in.");
@@ -43,7 +46,7 @@ export default function LoginPage() {
         setError("Invalid email or password");
       }
     } else {
-      router.push("/dashboard");
+      router.push(redirectTo);
       router.refresh();
     }
   }
@@ -52,7 +55,7 @@ export default function LoginPage() {
     setOauthLoading(provider);
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent(redirectTo)}` },
     });
   }
 
@@ -113,7 +116,8 @@ export default function LoginPage() {
 
         <p className="mt-4 text-center text-sm text-[#555555]">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-[#00ff88] hover:underline">Sign up</Link>
+          <Link href={`/register${redirectTo !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
+            className="text-[#00ff88] hover:underline">Sign up</Link>
         </p>
       </div>
     </div>

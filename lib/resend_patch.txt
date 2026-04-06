@@ -1,0 +1,2 @@
+const FROM    = process.env.RESEND_FROM_EMAIL   ?? "Leashly <noreply@leashly.dev>";
+const REPLY   = "support@leashly.dev";

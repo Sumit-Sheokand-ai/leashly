@@ -6,7 +6,6 @@ import { Shield, BarChart2, Zap, ChevronDown, Menu, X, TrendingDown, Database, M
 
 const STRIPE_PRO_LINK = "https://buy.stripe.com/3cI28t53XdWv2hH5WL9Ve09";
 
-/* ─── Typewriter ─── */
 function useTypewriter(lines: string[], speed = 28) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [cLine, setCLine]   = useState(0);
@@ -27,7 +26,6 @@ function useTypewriter(lines: string[], speed = 28) {
   return displayed;
 }
 
-/* ─── Scroll fade ─── */
 function useFadeIn(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -48,7 +46,6 @@ function FadeSection({children,className="",delay=0}:{children:React.ReactNode;c
   );
 }
 
-/* ─── Code block ─── */
 function CodeBlock({code,lang="js"}:{code:string;lang?:string}) {
   const [copied,setCopied]=useState(false);
   const lines=code.trim().split("\n");
@@ -94,7 +91,6 @@ function CodeBlock({code,lang="js"}:{code:string;lang?:string}) {
   );
 }
 
-/* ─── FAQ ─── */
 const FAQS = [
   {q:"Does Leashly add latency?",a:"No. The proxy runs in the same region as your LLM provider. Typical overhead is under 5ms."},
   {q:"Is my API key safe?",a:"Yes. Keys are encrypted at rest with AES-256-CBC. We never log or expose them in any response."},
@@ -123,7 +119,7 @@ const CODE_EXAMPLES: Record<string,{lang:string;code:string}> = {
   "Node.js":{lang:"js",code:`import OpenAI from 'openai';
 
 const client = new OpenAI({
-  apiKey: process.env.LEASHLY_KEY,      // your lsh_xxx key
+  apiKey: process.env.LEASHLY_KEY,
   baseURL: 'https://leashly.dev/api/proxy',
 });
 
@@ -169,11 +165,10 @@ const openai = new OpenAI({
   baseURL: "https://leashly.dev/api/proxy"
 })`;
 
-// Savings numbers — shown in hero
 const SAVINGS = [
-  { icon: TrendingDown, label: "Smart routing",   value: "$341", color: "var(--blue)",   bg: "var(--blue-glow)" },
-  { icon: Database,     label: "Cache hits",       value: "$198", color: "var(--violet)", bg: "var(--violet-glow)" },
-  { icon: Minimize2,    label: "Compression",      value: "$73",  color: "var(--warning)",bg: "rgba(255,170,68,0.08)" },
+  { icon: TrendingDown, label: "Smart routing",   value: "$341", color: "var(--blue)",    bg: "var(--blue-glow)" },
+  { icon: Database,     label: "Cache hits",       value: "$198", color: "var(--violet)",  bg: "var(--violet-glow)" },
+  { icon: Minimize2,    label: "Compression",      value: "$73",  color: "var(--warning)", bg: "rgba(255,170,68,0.08)" },
 ];
 
 export default function LandingPage() {
@@ -190,30 +185,20 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] text-[var(--text-bright)]">
-
-      {/* Grain texture */}
       <div className="grain" aria-hidden/>
-
-      {/* Dot grid */}
       <div className="fixed inset-0 pointer-events-none dot-grid opacity-35" aria-hidden/>
-
-      {/* 4-point gradient orbs — color stops within 60% radius */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
-        {/* Green — top center */}
         <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[1000px] h-[700px]"
           style={{background:"radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.07) 0%, rgba(0,255,136,0.03) 30%, transparent 60%)"}}/>
-        {/* Teal — top right */}
         <div className="absolute -top-32 -right-72 w-[700px] h-[700px]"
           style={{background:"radial-gradient(ellipse at 70% 30%, rgba(0,221,204,0.06) 0%, rgba(0,221,204,0.02) 30%, transparent 60%)"}}/>
-        {/* Blue — center left */}
         <div className="absolute top-[35%] -left-64 w-[720px] h-[720px]"
           style={{background:"radial-gradient(ellipse at 30% 50%, rgba(68,136,255,0.06) 0%, rgba(68,136,255,0.02) 30%, transparent 60%)"}}/>
-        {/* Violet — bottom right */}
         <div className="absolute bottom-[20%] -right-56 w-[700px] h-[700px]"
           style={{background:"radial-gradient(ellipse at 70% 70%, rgba(170,102,255,0.06) 0%, rgba(170,102,255,0.02) 30%, transparent 60%)"}}/>
       </div>
 
-      {/* ─── NAV ─── */}
+      {/* NAV */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled?"border-b":"border-b border-transparent"}`}
         style={scrolled?{background:"rgba(8,8,8,0.82)",backdropFilter:"blur(24px) saturate(180%)",WebkitBackdropFilter:"blur(24px) saturate(180%)",borderColor:"rgba(255,255,255,0.07)"}:{}}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -222,15 +207,9 @@ export default function LandingPage() {
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {[{label:"Docs",href:"/docs"},{label:"Pricing",href:"#pricing"},{label:"Sign in",href:"/login"}].map(item=>(
-              <a key={item.label} href={item.href}
-                className="text-sm text-[var(--text-dim)] hover:text-white transition-colors">
-                {item.label}
-              </a>
+              <a key={item.label} href={item.href} className="text-sm text-[var(--text-dim)] hover:text-white transition-colors">{item.label}</a>
             ))}
-            <Link href="/register"
-              className="btn btn-primary text-sm">
-              Get started free
-            </Link>
+            <Link href="/register" className="btn btn-primary text-sm">Get started free</Link>
           </div>
           <button className="md:hidden text-[var(--text-dim)]" onClick={()=>setMobileOpen(o=>!o)}>
             {mobileOpen?<X size={20}/>:<Menu size={20}/>}
@@ -238,56 +217,38 @@ export default function LandingPage() {
         </div>
         {mobileOpen&&(
           <div className="md:hidden bg-[var(--surface-2)] border-b border-[var(--border-dim)] px-6 py-5 space-y-4 animate-fade-up">
-            <a href="/docs"      className="block text-sm text-[var(--text-dim)]">Docs</a>
-            <a href="#pricing"  className="block text-sm text-[var(--text-dim)]">Pricing</a>
-            <a href="/login"    className="block text-sm text-[var(--text-dim)]">Sign in</a>
+            <a href="/docs" className="block text-sm text-[var(--text-dim)]">Docs</a>
+            <a href="#pricing" className="block text-sm text-[var(--text-dim)]">Pricing</a>
+            <a href="/login" className="block text-sm text-[var(--text-dim)]">Sign in</a>
             <Link href="/register" className="block btn btn-primary text-center">Get started free</Link>
           </div>
         )}
       </nav>
 
-      {/* ─── HERO ─── */}
+      {/* HERO */}
       <section className="relative pt-40 pb-28 px-6 max-w-5xl mx-auto text-center">
         <div className="animate-fade-up">
-          {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 badge badge-green mb-8 text-xs font-mono">
             <span className="status-dot status-dot-green"/>
             AI optimization proxy · Now with smart routing + cache
           </div>
-
           <h1 className="font-mono text-[52px] md:text-[72px] lg:text-[84px] font-bold text-white leading-[1.0] tracking-tight mb-6 text-balance">
             Stop flying blind<br />
-            <span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 20%, var(--blue) 40%, var(--violet) 60%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>
-              on AI costs.
-            </span>
+            <span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 20%, var(--blue) 40%, var(--violet) 60%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>on AI costs.</span>
           </h1>
-
           <p className="text-lg text-[var(--text-dim)] max-w-xl mx-auto mb-10 leading-relaxed">
             Leashly sits between your app and any LLM. Enforce spend caps, rate limits, injection protection — and actively cut your bill with smart routing and semantic caching.
           </p>
-
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-5">
-            <Link href="/register"
-              className="btn btn-primary px-8 py-3 text-base">
-              Get started free →
-            </Link>
-            <Link href="/docs"
-              className="btn btn-ghost px-8 py-3 text-base">
-              Read the docs
-            </Link>
+            <Link href="/register" className="btn btn-primary px-8 py-3 text-base">Get started free →</Link>
+            <Link href="/docs" className="btn btn-ghost px-8 py-3 text-base">Read the docs</Link>
           </div>
           <p className="text-xs text-[var(--text-ghost)] font-mono">No credit card · 5 minute setup · OpenAI · Anthropic · Gemini</p>
         </div>
-
-        {/* Savings trio */}
         <div className="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto animate-fade-up" style={{animationDelay:"120ms"}}>
           {SAVINGS.map(s=>(
-            <div key={s.label} className="card p-4 text-center" style={{
-              borderColor:`${s.color}28`,
-              background:`linear-gradient(160deg, ${s.bg} 0%, rgba(14,14,14,0.8) 60%)`,
-              backdropFilter:"blur(12px)",
-            }}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-2" style={{background:s.bg, boxShadow:`0 0 16px ${s.bg}`}}>
+            <div key={s.label} className="card p-4 text-center" style={{borderColor:`${s.color}28`,background:`linear-gradient(160deg, ${s.bg} 0%, rgba(14,14,14,0.8) 60%)`,backdropFilter:"blur(12px)"}}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-2" style={{background:s.bg,boxShadow:`0 0 16px ${s.bg}`}}>
                 <s.icon size={15} style={{color:s.color}}/>
               </div>
               <div className="font-mono text-xl font-bold" style={{color:s.color}}>{s.value}</div>
@@ -296,14 +257,12 @@ export default function LandingPage() {
           ))}
         </div>
         <p className="text-xs text-[var(--text-ghost)] font-mono mt-3">avg. monthly savings for Pro users</p>
-
-        {/* Hero code */}
         <div className="max-w-2xl mx-auto mt-14 animate-fade-up" style={{animationDelay:"200ms"}}>
           <CodeBlock code={HERO_CODE} lang="js"/>
         </div>
       </section>
 
-      {/* ─── SOCIAL PROOF ─── */}
+      {/* SOCIAL PROOF */}
       <FadeSection>
         <div className="py-5 px-6 relative">
           <div className="gradient-line-h absolute top-0 left-0 right-0"/>
@@ -311,40 +270,27 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4">
             <span className="text-sm text-[var(--text-ghost)] font-mono sm:mr-8">Trusted by 200+ dev teams</span>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-              {["Acme Corp","Buildfast","NovaMind","Layerstack","Shipyard"].map((name)=>(
-                <span key={name} className="font-mono text-[var(--text-ghost)] opacity-40 hover:opacity-65 transition-opacity cursor-default"
-                  style={{fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase"}}>
-                  {name}
-                </span>
+              {["Acme Corp","Buildfast","NovaMind","Layerstack","Shipyard"].map(name=>(
+                <span key={name} className="font-mono text-[var(--text-ghost)] opacity-40 hover:opacity-65 transition-opacity cursor-default" style={{fontSize:"0.65rem",fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase"}}>{name}</span>
               ))}
             </div>
           </div>
         </div>
       </FadeSection>
 
-      {/* ─── PROBLEM ─── */}
+      {/* PROBLEM */}
       <FadeSection>
         <section className="py-28 px-6 max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
               <p className="text-xs font-mono text-[var(--text-ghost)] uppercase tracking-widest mb-4">The problem</p>
               <h2 className="font-mono text-3xl md:text-4xl font-bold text-white leading-tight mb-6">
-                One abusive user.<br />One overnight script.<br />
-                <span className="text-[var(--danger)]">$40,000 bill.</span>
+                One abusive user.<br />One overnight script.<br /><span className="text-[var(--danger)]">$40,000 bill.</span>
               </h2>
-              <p className="text-[var(--text-dim)] leading-relaxed mb-4">
-                There are no guardrails between your app and the LLM API. One misconfigured feature, one abusive user, or one runaway script — and your next invoice is unrecognizable.
-              </p>
-              <p className="text-[var(--text-dim)] leading-relaxed">
-                No rate limits means no friction for abuse. No spend caps means no ceiling on damage. No attribution means no idea who caused it.
-              </p>
+              <p className="text-[var(--text-dim)] leading-relaxed mb-4">There are no guardrails between your app and the LLM API. One misconfigured feature, one abusive user, or one runaway script — and your next invoice is unrecognizable.</p>
+              <p className="text-[var(--text-dim)] leading-relaxed">No rate limits means no friction for abuse. No spend caps means no ceiling on damage. No attribution means no idea who caused it.</p>
             </div>
-            {/* Terminal */}
-            <div className="border rounded-2xl p-6 font-mono text-sm" style={{
-              background:"linear-gradient(160deg, rgba(255,68,68,0.03) 0%, var(--surface-1) 40%)",
-              borderColor:"rgba(255,68,68,0.15)",
-              boxShadow:"0 0 40px rgba(255,68,68,0.04), 0 1px 0 rgba(255,255,255,0.04) inset"
-            }}>
+            <div className="border rounded-2xl p-6 font-mono text-sm" style={{background:"linear-gradient(160deg, rgba(255,68,68,0.03) 0%, var(--surface-1) 40%)",borderColor:"rgba(255,68,68,0.15)",boxShadow:"0 0 40px rgba(255,68,68,0.04), 0 1px 0 rgba(255,255,255,0.04) inset"}}>
               <div className="flex items-center gap-2 mb-5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--danger)] opacity-70"/>
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--warning)] opacity-70"/>
@@ -356,8 +302,7 @@ export default function LandingPage() {
                   const shown=terminal[i]??"";
                   return (
                     <div key={i} className={`text-xs ${line.startsWith("⚠")?"text-[var(--danger)]":line.startsWith("   ")?"text-[var(--text-ghost)]":line.startsWith("$")?"text-[var(--green)]":"text-[var(--text-bright)]"}`}>
-                      {shown}
-                      {i===Math.min(terminal.length,TERMINAL_LINES.length-1)&&shown.length<line.length&&<span className="animate-pulse">█</span>}
+                      {shown}{i===Math.min(terminal.length,TERMINAL_LINES.length-1)&&shown.length<line.length&&<span className="animate-pulse">█</span>}
                     </div>
                   );
                 })}
@@ -367,7 +312,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── HOW IT WORKS ─── */}
+      {/* HOW IT WORKS */}
       <FadeSection>
         <section className="py-28 px-6 max-w-6xl mx-auto" id="how-it-works">
           <div className="text-center mb-16">
@@ -375,11 +320,9 @@ export default function LandingPage() {
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">One proxy. Full control.</h2>
             <p className="text-[var(--text-dim)] max-w-md mx-auto">The same interface your SDK already uses. Zero refactoring.</p>
           </div>
-
-          {/* 3 pillars */}
           <div className="grid md:grid-cols-3 gap-5 mb-16">
             {([
-              {icon:Shield,    color:"var(--danger)", bg:"rgba(255,68,68,0.08)", title:"Enforce rules",     desc:"Spend caps per user, per day, per model. Rate limits that actually work. Injection filter that stops attacks before they reach the model."},
+              {icon:Shield,    color:"var(--danger)", bg:"rgba(255,68,68,0.08)", title:"Enforce rules",      desc:"Spend caps per user, per day, per model. Rate limits that actually work. Injection filter that stops attacks before they reach the model."},
               {icon:BarChart2, color:"var(--blue)",   bg:"var(--blue-glow)",     title:"See everything",    desc:"Every token, dollar, and request attributed to the exact user, feature, and model. No more mystery invoices."},
               {icon:Zap,       color:"var(--green)",  bg:"var(--green-glow)",    title:"Save automatically",desc:"Smart routing, semantic caching, and prompt compression cut your AI bill without any code changes. Average savings: 60%."},
             ] as const).map(({icon:Icon,color,bg,title,desc},i)=>(
@@ -394,8 +337,6 @@ export default function LandingPage() {
               </FadeSection>
             ))}
           </div>
-
-          {/* Flow diagram */}
           <div className="flex items-center justify-center gap-0 flex-wrap">
             {[
               {label:"Your App",      sub:"OpenAI SDK",       hi:false},
@@ -413,11 +354,7 @@ export default function LandingPage() {
               );
               return (
                 <div key={i} className={`border rounded-2xl px-5 py-3 text-center transition-all duration-300 ${item.hi?"hover:border-[rgba(0,255,136,0.45)]":"border-[var(--border-mid)] bg-[var(--surface-2)] hover:border-[var(--border-hi)]"}`}
-                  style={item.hi?{
-                    borderColor:"rgba(0,255,136,0.32)",
-                    background:"linear-gradient(135deg, rgba(0,255,136,0.08) 0%, rgba(0,221,204,0.06) 60%)",
-                    boxShadow:"0 0 32px rgba(0,255,136,0.07), 0 1px 0 rgba(255,255,255,0.05) inset"
-                  }:{}}>
+                  style={item.hi?{borderColor:"rgba(0,255,136,0.32)",background:"linear-gradient(135deg, rgba(0,255,136,0.08) 0%, rgba(0,221,204,0.06) 60%)",boxShadow:"0 0 32px rgba(0,255,136,0.07), 0 1px 0 rgba(255,255,255,0.05) inset"}:{}}>
                   <div className="font-mono font-bold text-white text-sm">{item.label}</div>
                   <div className="text-xs mt-1" style={{color:item.hi?"var(--green)":"var(--text-ghost)"}}>{item.sub}</div>
                 </div>
@@ -427,7 +364,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── FEATURES ─── */}
+      {/* FEATURES */}
       <FadeSection>
         <section className="py-28 px-6 max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -436,19 +373,18 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {([
-              {icon:DollarSign, color:"var(--green)",    bg:"var(--green-glow)",          title:"Spend caps",         desc:"Daily, weekly, monthly limits. Block or alert when thresholds are hit."},
-              {icon:Gauge,      color:"var(--blue)",     bg:"var(--blue-glow)",           title:"Rate limiting",      desc:"Per-minute, per-hour throttling. Per account, key, or IP."},
-              {icon:ShieldCheck,color:"var(--danger)",   bg:"rgba(255,68,68,0.08)",       title:"Injection shield",   desc:"Blocks 50+ jailbreak patterns. Three sensitivity levels."},
-              {icon:GitBranch,  color:"var(--teal)",     bg:"var(--teal-glow)",           title:"Smart routing",      desc:"Auto-routes simple requests to cheaper models. Average 40% savings."},
-              {icon:Sparkles,   color:"var(--violet)",   bg:"var(--violet-glow)",         title:"Semantic cache",     desc:"Similar prompts return cached responses at $0 cost. pgvector powered."},
-              {icon:Minimize2,  color:"var(--warning)",  bg:"rgba(255,170,68,0.08)",      title:"Prompt compression", desc:"Shrinks bloated system prompts before they reach the model."},
-              {icon:BarChart2,  color:"var(--blue)",     bg:"var(--blue-glow)",           title:"Cost attribution",   desc:"See which user and feature is burning money. Full model breakdown."},
-              {icon:Bell,       color:"var(--green)",    bg:"var(--green-glow)",          title:"Real-time alerts",   desc:"Email + in-app notifications when spend or rate limits are hit."},
-              {icon:ScrollText, color:"var(--text-dim)", bg:"rgba(102,102,102,0.08)",     title:"Audit logs",         desc:"Every request logged with tokens, cost, duration, and flag reason."},
+              {icon:DollarSign, color:"var(--green)",   bg:"var(--green-glow)",        title:"Spend caps",         desc:"Daily, weekly, monthly limits. Block or alert when thresholds are hit."},
+              {icon:Gauge,      color:"var(--blue)",    bg:"var(--blue-glow)",         title:"Rate limiting",      desc:"Per-minute, per-hour throttling. Per account, key, or IP."},
+              {icon:ShieldCheck,color:"var(--danger)",  bg:"rgba(255,68,68,0.08)",     title:"Injection shield",   desc:"Blocks 50+ jailbreak patterns. Three sensitivity levels."},
+              {icon:GitBranch,  color:"var(--teal)",    bg:"var(--teal-glow)",         title:"Smart routing",      desc:"Auto-routes simple requests to cheaper models. Average 40% savings."},
+              {icon:Sparkles,   color:"var(--violet)",  bg:"var(--violet-glow)",       title:"Semantic cache",     desc:"Similar prompts return cached responses at $0 cost. pgvector powered."},
+              {icon:Minimize2,  color:"var(--warning)", bg:"rgba(255,170,68,0.08)",    title:"Prompt compression", desc:"Shrinks bloated system prompts before they reach the model."},
+              {icon:BarChart2,  color:"var(--blue)",    bg:"var(--blue-glow)",         title:"Cost attribution",   desc:"See which user and feature is burning money. Full model breakdown."},
+              {icon:Bell,       color:"var(--green)",   bg:"var(--green-glow)",        title:"Real-time alerts",   desc:"Email + in-app notifications when spend or rate limits are hit."},
+              {icon:ScrollText, color:"var(--text-dim)",bg:"rgba(102,102,102,0.08)",   title:"Audit logs",         desc:"Every request logged with tokens, cost, duration, and flag reason."},
             ] as const).map(({icon:Icon,color,bg,title,desc})=>(
               <div key={title} className="card p-5 group">
-                <div className="w-9 h-9 rounded-[var(--r-md)] flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
-                  style={{background:bg}}>
+                <div className="w-9 h-9 rounded-[var(--r-md)] flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110" style={{background:bg}}>
                   <Icon size={16} style={{color}}/>
                 </div>
                 <h3 className="font-mono font-bold text-white mb-1.5 text-sm">{title}</h3>
@@ -459,7 +395,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── CODE EXAMPLES ─── */}
+      {/* CODE EXAMPLES */}
       <FadeSection>
         <section className="py-28 px-6 max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -471,7 +407,7 @@ export default function LandingPage() {
             {Object.keys(CODE_EXAMPLES).map(tab=>(
               <button key={tab} onClick={()=>setActiveTab(tab)}
                 className={`px-4 py-1.5 rounded-[var(--r-md)] text-sm font-mono transition-all duration-200 ${activeTab===tab?"text-black font-semibold":"text-[var(--text-dim)] hover:text-white"}`}
-                style={activeTab===tab?{background:"linear-gradient(135deg, var(--green) 0%, var(--teal) 60%)", boxShadow:"0 2px 8px rgba(0,255,136,0.2)"}:{}}>
+                style={activeTab===tab?{background:"linear-gradient(135deg, var(--green) 0%, var(--teal) 60%)",boxShadow:"0 2px 8px rgba(0,255,136,0.2)"}:{}}>
                 {tab}
               </button>
             ))}
@@ -480,7 +416,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── PRICING ─── */}
+      {/* PRICING */}
       <FadeSection>
         <section className="py-28 px-6 max-w-4xl mx-auto" id="pricing">
           <div className="text-center mb-16">
@@ -489,63 +425,48 @@ export default function LandingPage() {
             <p className="text-[var(--text-dim)]">Saves itself in the first week.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 max-w-3xl mx-auto">
-            {/* Free */}
             <div className="card p-6">
               <h3 className="font-mono font-bold text-white mb-1">Free</h3>
               <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">$0</span><span className="text-[var(--text-dim)] text-sm mb-1">/mo</span></div>
               <p className="text-xs text-[var(--text-ghost)] mb-5">Forever free</p>
               <ul className="space-y-2.5 mb-6">
-                {["10,000 req/mo","1 API key","Basic rate limiting","7-day logs"].map(f=>(
-                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]">
-                    <span className="text-[var(--green)] mt-0.5 shrink-0">✓</span>{f}
-                  </li>
+                {["10,000 req/mo","2 API keys","Basic rate limiting","7-day logs"].map(f=>(
+                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]"><span className="text-[var(--green)] mt-0.5 shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
               <Link href="/register" className="btn btn-ghost w-full justify-center">Get started free</Link>
             </div>
-
-            {/* Pro */}
-            <div className="card p-6 relative" style={{
-              borderColor:"rgba(0,255,136,0.32)",
-              background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 30%, var(--surface-1) 60%)",
-              boxShadow:"0 0 60px rgba(0,255,136,0.07), 0 0 120px rgba(0,221,204,0.03), 0 1px 0 rgba(255,255,255,0.05) inset"
-            }}>
+            <div className="card p-6 relative" style={{borderColor:"rgba(0,255,136,0.32)",background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 30%, var(--surface-1) 60%)",boxShadow:"0 0 60px rgba(0,255,136,0.07), 0 0 120px rgba(0,221,204,0.03), 0 1px 0 rgba(255,255,255,0.05) inset"}}>
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 badge badge-green text-[10px] font-bold">Most popular</div>
               <h3 className="font-mono font-bold text-white mb-1">Pro</h3>
               <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">$9</span><span className="text-[var(--text-dim)] text-sm mb-1"> CAD/mo</span></div>
               <p className="text-xs text-[var(--text-ghost)] mb-5">Cancel anytime</p>
               <ul className="space-y-2.5 mb-6">
                 {["Unlimited requests","Smart routing + cache","Prompt compression","90-day logs","Email alerts","Priority support"].map(f=>(
-                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]">
-                    <span className="text-[var(--green)] mt-0.5 shrink-0">✓</span>{f}
-                  </li>
+                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]"><span className="text-[var(--green)] mt-0.5 shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
               <a href={STRIPE_PRO_LINK} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full justify-center">Upgrade to Pro →</a>
             </div>
-
-            {/* Usage-based */}
             <div className="card p-6" style={{borderColor:"rgba(68,136,255,0.25)"}}>
               <h3 className="font-mono font-bold text-white mb-1">Pay As You Save</h3>
               <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">10%</span><span className="text-[var(--text-dim)] text-sm mb-1"> of savings</span></div>
               <p className="text-xs text-[var(--text-ghost)] mb-5">Zero risk — you always win</p>
               <ul className="space-y-2.5 mb-6">
                 {["No monthly fee","Everything in Pro","Pay only on savings","Perfect for high volume"].map(f=>(
-                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]">
-                    <span className="text-[var(--blue)] mt-0.5 shrink-0">✓</span>{f}
-                  </li>
+                  <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-dim)]"><span className="text-[var(--blue)] mt-0.5 shrink-0">✓</span>{f}</li>
                 ))}
               </ul>
               <Link href="/register" className="btn btn-ghost w-full justify-center" style={{borderColor:"rgba(68,136,255,0.3)",color:"var(--blue)"}}>Get started →</Link>
             </div>
           </div>
           <p className="text-center text-xs text-[var(--text-ghost)] font-mono mt-8">
-            Need more? <a href="mailto:hello@leashly.dev" className="text-[var(--text-dim)] hover:text-[var(--green)] underline transition-colors">Contact us</a>
+            Need more? <a href="mailto:support@leashly.dev" className="text-[var(--text-dim)] hover:text-[var(--green)] underline transition-colors">Contact us</a>
           </p>
         </section>
       </FadeSection>
 
-      {/* ─── FAQ ─── */}
+      {/* FAQ */}
       <FadeSection>
         <section className="py-28 px-6 max-w-3xl mx-auto">
           <h2 className="font-mono text-3xl font-bold text-white text-center mb-14">FAQ</h2>
@@ -553,20 +474,13 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── CTA ─── */}
+      {/* CTA */}
       <FadeSection>
         <section className="py-28 px-6">
-          <div className="max-w-3xl mx-auto card p-16 text-center" style={{
-            borderColor:"rgba(0,255,136,0.20)",
-            background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 20%, rgba(68,136,255,0.04) 40%, rgba(170,102,255,0.03) 60%, var(--surface-1) 60%)",
-            boxShadow:"0 0 80px rgba(0,255,136,0.05), 0 0 160px rgba(68,136,255,0.03), 0 1px 0 rgba(255,255,255,0.06) inset"
-          }}>
+          <div className="max-w-3xl mx-auto card p-16 text-center" style={{borderColor:"rgba(0,255,136,0.20)",background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 20%, rgba(68,136,255,0.04) 40%, rgba(170,102,255,0.03) 60%, var(--surface-1) 60%)",boxShadow:"0 0 80px rgba(0,255,136,0.05), 0 0 160px rgba(68,136,255,0.03), 0 1px 0 rgba(255,255,255,0.06) inset"}}>
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Start protecting your AI spend today.</h2>
             <p className="text-[var(--text-dim)] mb-10">Free forever for indie devs. No credit card required.</p>
-            <Link href="/register"
-              className="btn btn-primary px-10 py-3.5 text-base inline-flex">
-              Create your free account →
-            </Link>
+            <Link href="/register" className="btn btn-primary px-10 py-3.5 text-base inline-flex">Create your free account →</Link>
             <div className="mt-6 flex items-center justify-center gap-2 text-[var(--text-ghost)] text-sm">
               <span>or</span>
               <Link href="/docs" className="text-[var(--text-dim)] hover:text-[var(--green)] transition-colors underline underline-offset-4">Read the docs</Link>
@@ -575,7 +489,7 @@ export default function LandingPage() {
         </section>
       </FadeSection>
 
-      {/* ─── FOOTER ─── */}
+      {/* FOOTER */}
       <footer className="border-t border-[var(--border-dim)] py-16 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-14">
@@ -583,15 +497,13 @@ export default function LandingPage() {
               {title:"Product",   links:[{l:"Features",h:"/#how-it-works"},{l:"Pricing",h:"/#pricing"},{l:"Docs",h:"/docs"},{l:"Dashboard",h:"/dashboard"}]},
               {title:"Developers",links:[{l:"API Reference",h:"/docs"},{l:"Quick start",h:"/docs"},{l:"GitHub",h:"https://github.com/Sumit-Sheokand-ai/leashly"},{l:"Status",h:"#"}]},
               {title:"Account",   links:[{l:"Sign in",h:"/login"},{l:"Sign up",h:"/register"},{l:"Settings",h:"/dashboard/settings"},{l:"Upgrade",h:STRIPE_PRO_LINK}]},
-              {title:"Legal",     links:[{l:"Privacy",h:"#"},{l:"Terms",h:"#"},{l:"Security",h:"/docs"},{l:"Contact",h:"mailto:hello@leashly.dev"}]},
+              {title:"Legal",     links:[{l:"Privacy",h:"/privacy"},{l:"Terms",h:"/terms"},{l:"Security",h:"/docs"},{l:"Contact",h:"mailto:support@leashly.dev"}]},
             ].map(({title,links})=>(
               <div key={title}>
                 <h4 className="font-mono text-xs font-bold text-[var(--text-ghost)] uppercase tracking-wider mb-4">{title}</h4>
                 <ul className="space-y-2.5">
                   {links.map(link=>(
-                    <li key={link.l}>
-                      <a href={link.h} className="text-sm text-[var(--text-ghost)] hover:text-[var(--text-bright)] transition-colors">{link.l}</a>
-                    </li>
+                    <li key={link.l}><a href={link.h} className="text-sm text-[var(--text-ghost)] hover:text-[var(--text-bright)] transition-colors">{link.l}</a></li>
                   ))}
                 </ul>
               </div>
@@ -603,10 +515,8 @@ export default function LandingPage() {
               <span className="text-[var(--text-ghost)] text-xs font-mono">© 2025 · Built for developers.</span>
             </div>
             <div className="flex gap-5">
-              <a href="https://github.com/Sumit-Sheokand-ai/leashly" target="_blank" rel="noopener noreferrer"
-                className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">GitHub</a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
-                className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">X / Twitter</a>
+              <a href="https://github.com/Sumit-Sheokand-ai/leashly" target="_blank" rel="noopener noreferrer" className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">GitHub</a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">X / Twitter</a>
             </div>
           </div>
         </div>

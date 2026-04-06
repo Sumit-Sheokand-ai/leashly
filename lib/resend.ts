@@ -4,7 +4,7 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-const FROM     = process.env.RESEND_FROM_EMAIL   ?? "Leashly <noreply@leashly.dev>";
+const FROM     = process.env.RESEND_FROM_EMAIL   ?? "Leashly <no-reply@leashly.dev>";
 const APP_URL  = process.env.NEXT_PUBLIC_APP_URL ?? "https://leashly.dev";
 
 /* ─────────────────────────────────────────────
@@ -133,7 +133,6 @@ export async function sendWelcomeEmail(to: string) {
     <h1 style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Welcome to Leashly</h1>
     <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#888888;line-height:1.6;">Your AI cost control proxy is ready. You're now protected from surprise bills.</p>
 
-    <!-- Steps -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
       ${[
         ["01", "Add your API key", "Paste your OpenAI, Anthropic, or Gemini key in the dashboard. It's encrypted at rest with AES-256."],
@@ -162,9 +161,8 @@ export async function sendWelcomeEmail(to: string) {
     ${divider}
 
     <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#444444;line-height:1.6;">
-      Need help? Reply to this email or check out the
+      Need help? Email us at <a href="mailto:support@leashly.dev" style="color:#666666;">support@leashly.dev</a> or check out the
       <a href="${APP_URL}/docs" style="color:#666666;">docs</a>.
-      We reply to every email.
     </p>
   `;
 
@@ -190,7 +188,6 @@ export async function sendSpendAlertEmail(to: string, opts: {
   const barColor = pct >= 100 ? "#ff4444" : pct >= 80 ? "#ffaa00" : "#00ff88";
 
   const content = `
-    <!-- Alert badge -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:20px;">
       <tr>
         <td style="background:#ff4444;border-radius:6px;padding:4px 10px;">
@@ -206,7 +203,6 @@ export async function sendSpendAlertEmail(to: string, opts: {
       Your ${opts.period} AI spend has ${pct >= 100 ? "exceeded" : "reached"} the threshold you set.
     </p>
 
-    <!-- Progress bar -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
       <tr>
         <td>
@@ -223,7 +219,6 @@ export async function sendSpendAlertEmail(to: string, opts: {
       </tr>
     </table>
 
-    <!-- Stats -->
     ${statRow("Period", opts.period)}
     ${statRow("Current spend", `$${opts.currentSpend.toFixed(4)}`, "#ffaa00")}
     ${statRow("Threshold", `$${opts.threshold.toFixed(2)}`)}
@@ -369,17 +364,16 @@ export async function sendWeeklyDigestEmail(to: string, opts: {
   flaggedCount: number;
   topModel: string;
   topProvider: string;
-  spendChange: number; // percent change vs last week, e.g. +12 or -5
+  spendChange: number;
 }) {
   const changeColor = opts.spendChange > 0 ? "#ff4444" : opts.spendChange < 0 ? "#00ff88" : "#888888";
   const changeLabel = opts.spendChange > 0 ? `↑ ${opts.spendChange}%` : opts.spendChange < 0 ? `↓ ${Math.abs(opts.spendChange)}%` : "→ no change";
 
   const content = `
-    <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#555555;font-family:monospace;">WEEKLY DIGEST</p>
+    <p style="margin:0 0 4px;font-family:monospace;font-size:12px;color:#555555;">WEEKLY DIGEST</p>
     <h1 style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Your week in AI</h1>
     <p style="margin:0 0 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#555555;">${opts.weekStart} – ${opts.weekEnd}</p>
 
-    <!-- Big spend number -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;margin-bottom:20px;">
       <tr>
         <td align="center" style="padding:24px;">
@@ -390,14 +384,12 @@ export async function sendWeeklyDigestEmail(to: string, opts: {
       </tr>
     </table>
 
-    <!-- Stats grid -->
     ${statRow("Total requests", opts.totalRequests.toLocaleString())}
     ${statRow("Flagged requests", String(opts.flaggedCount), opts.flaggedCount > 0 ? "#ff4444" : "#00ff88")}
     ${statRow("Top model", opts.topModel, "#00aaff")}
     ${statRow("Top provider", opts.topProvider, "#7c3aed")}
 
     <div style="height:24px;"></div>
-
     ${ctaButton("View full dashboard", `${APP_URL}/dashboard`)}
 
     ${divider}
@@ -416,10 +408,7 @@ export async function sendWeeklyDigestEmail(to: string, opts: {
 }
 
 /* ─────────────────────────────────────────────
-   6. Password reset / magic link (passthrough)
-   Supabase handles sending, but this is the
-   custom template you register in Supabase
-   → Authentication → Email Templates
+   6. Password reset
 ───────────────────────────────────────────── */
 export async function sendPasswordResetEmail(to: string, resetLink: string) {
   const content = `
@@ -435,9 +424,6 @@ export async function sendPasswordResetEmail(to: string, resetLink: string) {
     <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#555555;">
       This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.
     </p>
-    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#444444;">
-      If the button doesn't work, copy and paste this URL into your browser:
-    </p>
     <p style="margin:6px 0 0;font-family:'Courier New',Courier,monospace;font-size:11px;color:#555555;word-break:break-all;">${resetLink}</p>
   `;
 
@@ -450,7 +436,7 @@ export async function sendPasswordResetEmail(to: string, resetLink: string) {
 }
 
 /* ─────────────────────────────────────────────
-   7. Email confirmation (for Supabase custom SMTP)
+   7. Email confirmation
 ───────────────────────────────────────────── */
 export async function sendConfirmationEmail(to: string, confirmLink: string) {
   const content = `
@@ -466,9 +452,6 @@ export async function sendConfirmationEmail(to: string, confirmLink: string) {
     <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#555555;">
       This link expires in 24 hours. If you didn't create a Leashly account, you can safely ignore this email.
     </p>
-    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#444444;">
-      If the button doesn't work, copy and paste this URL:
-    </p>
     <p style="margin:6px 0 0;font-family:'Courier New',Courier,monospace;font-size:11px;color:#555555;word-break:break-all;">${confirmLink}</p>
   `;
 
@@ -477,6 +460,94 @@ export async function sendConfirmationEmail(to: string, confirmLink: string) {
     to,
     subject: "Confirm your Leashly email address",
     html: layout(content, "Confirm your email to activate your Leashly account."),
+  });
+}
+
+/* ─────────────────────────────────────────────
+   8. Subscription cancelled
+───────────────────────────────────────────── */
+export async function sendCancellationEmail(to: string, opts: {
+  endsAt?: string;
+  immediateDowngrade?: boolean;
+}) {
+  const content = `
+    <h1 style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Subscription cancelled</h1>
+    <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#888888;line-height:1.6;">
+      ${opts.immediateDowngrade
+        ? "Your Leashly Pro subscription has been cancelled. You have been moved to the free plan."
+        : `Your Pro subscription has been cancelled. You'll keep full Pro access until <strong style="color:#ffffff;">${opts.endsAt}</strong>, after which your account moves to the free plan.`
+      }
+    </p>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;margin-bottom:24px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:700;color:#555555;letter-spacing:0.5px;text-transform:uppercase;">Free plan limits</p>
+        ${["2 API keys","2 rules","2 alert rules","7-day log retention","No workspace / team"].map(i => `
+        <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#888888;">
+          <span style="color:#ff4444;margin-right:8px;">✕</span>${i}
+        </p>`).join("")}
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#666666;">Changed your mind? Reactivate anytime from the billing page.</p>
+
+    ${ctaButton("Reactivate Pro", `${APP_URL}/dashboard/billing`)}
+
+    ${divider}
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;color:#444444;">
+      If you have feedback on why you cancelled, reply to this email — we read every response.
+    </p>
+  `;
+
+  await getResend().emails.send({
+    from: FROM,
+    to,
+    subject: "Your Leashly Pro subscription has been cancelled",
+    html: layout(content, opts.immediateDowngrade
+      ? "Your subscription has been cancelled. You are now on the free plan."
+      : `Your subscription has been cancelled. Access continues until ${opts.endsAt}.`
+    ),
+  });
+}
+
+/* ─────────────────────────────────────────────
+   9. Pro upgrade confirmation
+───────────────────────────────────────────── */
+export async function sendUpgradeEmail(to: string, opts: { plan: string; nextBillingDate: string }) {
+  const content = `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:20px;">
+      <tr><td style="background:#00ff8822;border:1px solid #00ff8844;border-radius:6px;padding:4px 10px;">
+        <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:700;color:#00ff88;letter-spacing:0.5px;">✓ UPGRADE CONFIRMED</span>
+      </td></tr>
+    </table>
+
+    <h1 style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Welcome to Leashly Pro</h1>
+    <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#888888;line-height:1.6;">
+      Your account has been upgraded to <strong style="color:#ffffff;">${opts.plan}</strong>. All Pro features are now unlocked.
+    </p>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#00ff8808;border:1px solid #00ff8820;border-radius:10px;margin-bottom:24px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:700;color:#00ff88;letter-spacing:0.5px;text-transform:uppercase;">Now unlocked</p>
+        ${["Unlimited requests","30 API keys, 30 rules, 30 alert rules","Semantic cache — repeat prompts cost $0","90-day log retention","Team workspace (10 members)","Priority support"].map(i => `
+        <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#cccccc;">
+          <span style="color:#00ff88;margin-right:8px;">✓</span>${i}
+        </p>`).join("")}
+      </td></tr>
+    </table>
+
+    ${statRow("Plan", opts.plan)}
+    ${statRow("Next billing date", opts.nextBillingDate, "#888888")}
+
+    <div style="height:24px;"></div>
+    ${ctaButton("Go to dashboard", `${APP_URL}/dashboard`)}
+  `;
+
+  await getResend().emails.send({
+    from: FROM,
+    to,
+    subject: "You're now on Leashly Pro 🎉",
+    html: layout(content, "Your Leashly account has been upgraded to Pro. All features are now unlocked."),
   });
 }
 
@@ -494,7 +565,6 @@ export async function sendAlertEmail(to: string, type: string, message: string) 
     return sendRateLimitAlertEmail(to, { hitCount: 1, period: "hour", scope: "account" });
   }
 
-  // Generic fallback
   const content = `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:20px;">
       <tr><td style="background:#ff444422;border:1px solid #ff444444;border-radius:6px;padding:4px 10px;">

@@ -2,7 +2,7 @@
 import { createHash } from "crypto";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const EMBED_MODEL = "text-embedding-3-small";
+const EMBED_MODEL = "text-embedding-3-small"; // cheapest OpenAI embedding model
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -38,7 +38,7 @@ export async function checkCache(
   const db = createSupabaseAdmin();
   const promptHash = hashPrompt(messages);
 
-  // 1. Exact match
+  // 1. Exact match — free, no embedding needed
   const { data: exact } = await db
     .from("CacheEntry")
     .select("id, response")
@@ -59,7 +59,7 @@ export async function checkCache(
 
   const threshold = user.similarityThreshold ?? 0.97;
 
-  // 3. Semantic match
+  // 3. Semantic match — uses text-embedding-3-small ($0.00002/call)
   let embedding: number[];
   try {
     embedding = await generateEmbedding(messagesToText(messages));
@@ -104,6 +104,8 @@ export async function storeCache(
 
   if (!entry) return;
 
+  // Store embedding async — non-fatal if fails
+  // text-embedding-3-small = $0.00002 per call — very cheap
   try {
     const embedding = await generateEmbedding(messagesToText(messages));
     await db.rpc("update_cache_embedding", { p_id: entry.id, p_embedding: embedding });

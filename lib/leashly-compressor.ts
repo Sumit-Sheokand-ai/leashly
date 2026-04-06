@@ -36,7 +36,7 @@ export async function compressSystemPrompt(
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini", // cheapest — only for compression
       max_tokens: originalTokens,
       messages: [
         { role: "system", content: PROMPTS[level] },

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Shield, BarChart2, Zap, ChevronDown, Menu, X, TrendingDown, Database, Minimize2 } from "lucide-react";
+import { Shield, BarChart2, Zap, ChevronDown, Menu, X, TrendingDown, Database, Minimize2, DollarSign, Gauge, ShieldCheck, GitBranch, Sparkles, Bell, ScrollText } from "lucide-react";
 
 const STRIPE_PRO_LINK = "https://buy.stripe.com/3cI28t53XdWv2hH5WL9Ve09";
 
@@ -191,18 +191,34 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[var(--surface-0)] text-[var(--text-bright)]">
 
-      {/* Dot grid */}
-      <div className="fixed inset-0 pointer-events-none dot-grid opacity-40"/>
+      {/* Grain texture */}
+      <div className="grain" aria-hidden/>
 
-      {/* Subtle radial glow at top */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
-        style={{background:"radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.04) 0%, transparent 70%)"}}/>
+      {/* Dot grid */}
+      <div className="fixed inset-0 pointer-events-none dot-grid opacity-35" aria-hidden/>
+
+      {/* 4-point gradient orbs — color stops within 60% radius */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        {/* Green — top center */}
+        <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[1000px] h-[700px]"
+          style={{background:"radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.07) 0%, rgba(0,255,136,0.03) 30%, transparent 60%)"}}/>
+        {/* Teal — top right */}
+        <div className="absolute -top-32 -right-72 w-[700px] h-[700px]"
+          style={{background:"radial-gradient(ellipse at 70% 30%, rgba(0,221,204,0.06) 0%, rgba(0,221,204,0.02) 30%, transparent 60%)"}}/>
+        {/* Blue — center left */}
+        <div className="absolute top-[35%] -left-64 w-[720px] h-[720px]"
+          style={{background:"radial-gradient(ellipse at 30% 50%, rgba(68,136,255,0.06) 0%, rgba(68,136,255,0.02) 30%, transparent 60%)"}}/>
+        {/* Violet — bottom right */}
+        <div className="absolute bottom-[20%] -right-56 w-[700px] h-[700px]"
+          style={{background:"radial-gradient(ellipse at 70% 70%, rgba(170,102,255,0.06) 0%, rgba(170,102,255,0.02) 30%, transparent 60%)"}}/>
+      </div>
 
       {/* ─── NAV ─── */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled?"bg-[var(--surface-0)]/90 backdrop-blur-xl border-b border-[var(--border-dim)]":"bg-transparent"}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled?"border-b":"border-b border-transparent"}`}
+        style={scrolled?{background:"rgba(8,8,8,0.82)",backdropFilter:"blur(24px) saturate(180%)",WebkitBackdropFilter:"blur(24px) saturate(180%)",borderColor:"rgba(255,255,255,0.07)"}:{}}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="font-mono text-xl font-bold tracking-tight">
-            <span className="text-[var(--green)]">Leash</span><span className="text-white">ly</span>
+            <span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 60%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>Leash</span><span className="text-white">ly</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {[{label:"Docs",href:"/docs"},{label:"Pricing",href:"#pricing"},{label:"Sign in",href:"/login"}].map(item=>(
@@ -239,9 +255,9 @@ export default function LandingPage() {
             AI optimization proxy · Now with smart routing + cache
           </div>
 
-          <h1 className="font-mono text-5xl md:text-[68px] font-bold text-white leading-[1.05] tracking-tight mb-6 text-balance">
+          <h1 className="font-mono text-[52px] md:text-[72px] lg:text-[84px] font-bold text-white leading-[1.0] tracking-tight mb-6 text-balance">
             Stop flying blind<br />
-            <span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 50%, var(--blue) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>
+            <span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 20%, var(--blue) 40%, var(--violet) 60%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>
               on AI costs.
             </span>
           </h1>
@@ -266,8 +282,12 @@ export default function LandingPage() {
         {/* Savings trio */}
         <div className="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto animate-fade-up" style={{animationDelay:"120ms"}}>
           {SAVINGS.map(s=>(
-            <div key={s.label} className="card p-4 text-center" style={{borderColor:`${s.color}22`}}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-2" style={{background:s.bg}}>
+            <div key={s.label} className="card p-4 text-center" style={{
+              borderColor:`${s.color}28`,
+              background:`linear-gradient(160deg, ${s.bg} 0%, rgba(14,14,14,0.8) 60%)`,
+              backdropFilter:"blur(12px)",
+            }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto mb-2" style={{background:s.bg, boxShadow:`0 0 16px ${s.bg}`}}>
                 <s.icon size={15} style={{color:s.color}}/>
               </div>
               <div className="font-mono text-xl font-bold" style={{color:s.color}}>{s.value}</div>
@@ -285,13 +305,16 @@ export default function LandingPage() {
 
       {/* ─── SOCIAL PROOF ─── */}
       <FadeSection>
-        <div className="border-y border-[var(--border-dim)] py-5 px-6">
+        <div className="py-5 px-6 relative">
+          <div className="gradient-line-h absolute top-0 left-0 right-0"/>
+          <div className="gradient-line-h absolute bottom-0 left-0 right-0"/>
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4">
             <span className="text-sm text-[var(--text-ghost)] font-mono sm:mr-8">Trusted by 200+ dev teams</span>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              {["Acme Corp","Buildfast","NovaMind","Layerstack","Shipyard"].map((name,i,arr)=>(
-                <span key={name} className="font-mono text-xs text-[var(--text-ghost)]">
-                  {name}{i<arr.length-1?<span className="mx-3 text-[var(--surface-4)]">·</span>:null}
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+              {["Acme Corp","Buildfast","NovaMind","Layerstack","Shipyard"].map((name)=>(
+                <span key={name} className="font-mono text-[var(--text-ghost)] opacity-40 hover:opacity-65 transition-opacity cursor-default"
+                  style={{fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase"}}>
+                  {name}
                 </span>
               ))}
             </div>
@@ -317,7 +340,11 @@ export default function LandingPage() {
               </p>
             </div>
             {/* Terminal */}
-            <div className="bg-[var(--surface-1)] border border-[var(--border-mid)] rounded-2xl p-6 font-mono text-sm shadow-card">
+            <div className="border rounded-2xl p-6 font-mono text-sm" style={{
+              background:"linear-gradient(160deg, rgba(255,68,68,0.03) 0%, var(--surface-1) 40%)",
+              borderColor:"rgba(255,68,68,0.15)",
+              boxShadow:"0 0 40px rgba(255,68,68,0.04), 0 1px 0 rgba(255,255,255,0.04) inset"
+            }}>
               <div className="flex items-center gap-2 mb-5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--danger)] opacity-70"/>
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--warning)] opacity-70"/>
@@ -351,14 +378,14 @@ export default function LandingPage() {
 
           {/* 3 pillars */}
           <div className="grid md:grid-cols-3 gap-5 mb-16">
-            {[
-              {icon:Shield,     color:"var(--danger)",  title:"Enforce rules",    desc:"Spend caps per user, per day, per model. Rate limits that actually work. Injection filter that stops attacks before they reach the model."},
-              {icon:BarChart2,  color:"var(--blue)",    title:"See everything",   desc:"Every token, dollar, and request attributed to the exact user, feature, and model. No more mystery invoices."},
-              {icon:Zap,        color:"var(--green)",   title:"Save automatically", desc:"Smart routing, semantic caching, and prompt compression cut your AI bill without any code changes. Average savings: 60%."},
-            ].map(({icon:Icon,color,title,desc},i)=>(
+            {([
+              {icon:Shield,    color:"var(--danger)", bg:"rgba(255,68,68,0.08)", title:"Enforce rules",     desc:"Spend caps per user, per day, per model. Rate limits that actually work. Injection filter that stops attacks before they reach the model."},
+              {icon:BarChart2, color:"var(--blue)",   bg:"var(--blue-glow)",     title:"See everything",    desc:"Every token, dollar, and request attributed to the exact user, feature, and model. No more mystery invoices."},
+              {icon:Zap,       color:"var(--green)",  bg:"var(--green-glow)",    title:"Save automatically",desc:"Smart routing, semantic caching, and prompt compression cut your AI bill without any code changes. Average savings: 60%."},
+            ] as const).map(({icon:Icon,color,bg,title,desc},i)=>(
               <FadeSection key={title} delay={i*80}>
                 <div className="card card-glow p-6 h-full">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{background:`${color}14`}}>
+                  <div className="w-10 h-10 rounded-[var(--r-lg)] flex items-center justify-center mb-4" style={{background:bg}}>
                     <Icon size={18} style={{color}}/>
                   </div>
                   <h3 className="font-mono font-bold text-white mb-2">{title}</h3>
@@ -385,7 +412,12 @@ export default function LandingPage() {
                 </div>
               );
               return (
-                <div key={i} className={`border rounded-2xl px-5 py-3 text-center ${item.hi?"border-[var(--green)] bg-[var(--green-glow)]":"border-[var(--border-mid)] bg-[var(--surface-2)]"}`}>
+                <div key={i} className={`border rounded-2xl px-5 py-3 text-center transition-all duration-300 ${item.hi?"hover:border-[rgba(0,255,136,0.45)]":"border-[var(--border-mid)] bg-[var(--surface-2)] hover:border-[var(--border-hi)]"}`}
+                  style={item.hi?{
+                    borderColor:"rgba(0,255,136,0.32)",
+                    background:"linear-gradient(135deg, rgba(0,255,136,0.08) 0%, rgba(0,221,204,0.06) 60%)",
+                    boxShadow:"0 0 32px rgba(0,255,136,0.07), 0 1px 0 rgba(255,255,255,0.05) inset"
+                  }:{}}>
                   <div className="font-mono font-bold text-white text-sm">{item.label}</div>
                   <div className="text-xs mt-1" style={{color:item.hi?"var(--green)":"var(--text-ghost)"}}>{item.sub}</div>
                 </div>
@@ -403,19 +435,22 @@ export default function LandingPage() {
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Everything you need to ship AI safely</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {icon:"💰",color:"var(--green)",  title:"Spend caps",        desc:"Daily, weekly, monthly limits. Block or alert when thresholds are hit."},
-              {icon:"⚡",color:"var(--blue)",   title:"Rate limiting",     desc:"Per-minute, per-hour throttling. Per account, key, or IP."},
-              {icon:"🛡️",color:"var(--danger)", title:"Injection shield",  desc:"Blocks 50+ jailbreak patterns. Three sensitivity levels."},
-              {icon:"🔀",color:"var(--teal)",   title:"Smart routing",     desc:"Auto-routes simple requests to cheaper models. Average 40% savings."},
-              {icon:"⚡",color:"var(--violet)", title:"Semantic cache",    desc:"Similar prompts return cached responses at $0 cost. pgvector powered."},
-              {icon:"🗜️",color:"var(--warning)","title":"Prompt compression",desc:"Shrinks bloated system prompts before they reach the model."},
-              {icon:"📊",color:"var(--blue)",   title:"Cost attribution",  desc:"See which user and feature is burning money. Full model breakdown."},
-              {icon:"🔔",color:"var(--green)",  title:"Real-time alerts",  desc:"Email + in-app notifications when spend or rate limits are hit."},
-              {icon:"📋",color:"var(--text-dim)","title":"Audit logs",     desc:"Every request logged with tokens, cost, duration, and flag reason."},
-            ].map(({icon,color,title,desc})=>(
-              <div key={title} className="card p-5">
-                <div className="text-2xl mb-3">{icon}</div>
+            {([
+              {icon:DollarSign, color:"var(--green)",    bg:"var(--green-glow)",          title:"Spend caps",         desc:"Daily, weekly, monthly limits. Block or alert when thresholds are hit."},
+              {icon:Gauge,      color:"var(--blue)",     bg:"var(--blue-glow)",           title:"Rate limiting",      desc:"Per-minute, per-hour throttling. Per account, key, or IP."},
+              {icon:ShieldCheck,color:"var(--danger)",   bg:"rgba(255,68,68,0.08)",       title:"Injection shield",   desc:"Blocks 50+ jailbreak patterns. Three sensitivity levels."},
+              {icon:GitBranch,  color:"var(--teal)",     bg:"var(--teal-glow)",           title:"Smart routing",      desc:"Auto-routes simple requests to cheaper models. Average 40% savings."},
+              {icon:Sparkles,   color:"var(--violet)",   bg:"var(--violet-glow)",         title:"Semantic cache",     desc:"Similar prompts return cached responses at $0 cost. pgvector powered."},
+              {icon:Minimize2,  color:"var(--warning)",  bg:"rgba(255,170,68,0.08)",      title:"Prompt compression", desc:"Shrinks bloated system prompts before they reach the model."},
+              {icon:BarChart2,  color:"var(--blue)",     bg:"var(--blue-glow)",           title:"Cost attribution",   desc:"See which user and feature is burning money. Full model breakdown."},
+              {icon:Bell,       color:"var(--green)",    bg:"var(--green-glow)",          title:"Real-time alerts",   desc:"Email + in-app notifications when spend or rate limits are hit."},
+              {icon:ScrollText, color:"var(--text-dim)", bg:"rgba(102,102,102,0.08)",     title:"Audit logs",         desc:"Every request logged with tokens, cost, duration, and flag reason."},
+            ] as const).map(({icon:Icon,color,bg,title,desc})=>(
+              <div key={title} className="card p-5 group">
+                <div className="w-9 h-9 rounded-[var(--r-md)] flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
+                  style={{background:bg}}>
+                  <Icon size={16} style={{color}}/>
+                </div>
                 <h3 className="font-mono font-bold text-white mb-1.5 text-sm">{title}</h3>
                 <p className="text-xs text-[var(--text-dim)] leading-relaxed">{desc}</p>
               </div>
@@ -432,10 +467,11 @@ export default function LandingPage() {
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Works with every SDK</h2>
             <p className="text-[var(--text-dim)]">One line change. Drop-in compatible.</p>
           </div>
-          <div className="flex gap-1 mb-4">
+          <div className="flex gap-1.5 mb-4 p-1 rounded-[var(--r-lg)] bg-[var(--surface-2)] border border-[var(--border-mid)] w-fit">
             {Object.keys(CODE_EXAMPLES).map(tab=>(
               <button key={tab} onClick={()=>setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl text-sm font-mono transition-all ${activeTab===tab?"bg-[var(--green)] text-black font-semibold":"text-[var(--text-dim)] hover:text-white"}`}>
+                className={`px-4 py-1.5 rounded-[var(--r-md)] text-sm font-mono transition-all duration-200 ${activeTab===tab?"text-black font-semibold":"text-[var(--text-dim)] hover:text-white"}`}
+                style={activeTab===tab?{background:"linear-gradient(135deg, var(--green) 0%, var(--teal) 60%)", boxShadow:"0 2px 8px rgba(0,255,136,0.2)"}:{}}>
                 {tab}
               </button>
             ))}
@@ -469,7 +505,11 @@ export default function LandingPage() {
             </div>
 
             {/* Pro */}
-            <div className="card p-6 relative" style={{borderColor:"var(--green)",boxShadow:"0 0 40px var(--green-glow)"}}>
+            <div className="card p-6 relative" style={{
+              borderColor:"rgba(0,255,136,0.32)",
+              background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 30%, var(--surface-1) 60%)",
+              boxShadow:"0 0 60px rgba(0,255,136,0.07), 0 0 120px rgba(0,221,204,0.03), 0 1px 0 rgba(255,255,255,0.05) inset"
+            }}>
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 badge badge-green text-[10px] font-bold">Most popular</div>
               <h3 className="font-mono font-bold text-white mb-1">Pro</h3>
               <div className="flex items-end gap-1 mb-1"><span className="font-mono text-3xl font-bold text-white">$9</span><span className="text-[var(--text-dim)] text-sm mb-1"> CAD/mo</span></div>
@@ -516,7 +556,11 @@ export default function LandingPage() {
       {/* ─── CTA ─── */}
       <FadeSection>
         <section className="py-28 px-6">
-          <div className="max-w-3xl mx-auto card p-16 text-center glow-green" style={{borderColor:"rgba(0,255,136,0.15)"}}>
+          <div className="max-w-3xl mx-auto card p-16 text-center" style={{
+            borderColor:"rgba(0,255,136,0.20)",
+            background:"linear-gradient(160deg, rgba(0,255,136,0.06) 0%, rgba(0,221,204,0.04) 20%, rgba(68,136,255,0.04) 40%, rgba(170,102,255,0.03) 60%, var(--surface-1) 60%)",
+            boxShadow:"0 0 80px rgba(0,255,136,0.05), 0 0 160px rgba(68,136,255,0.03), 0 1px 0 rgba(255,255,255,0.06) inset"
+          }}>
             <h2 className="font-mono text-3xl md:text-4xl font-bold text-white mb-4">Start protecting your AI spend today.</h2>
             <p className="text-[var(--text-dim)] mb-10">Free forever for indie devs. No credit card required.</p>
             <Link href="/register"
@@ -555,7 +599,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-[var(--border-dim)] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="font-mono font-bold"><span className="text-[var(--green)]">Leash</span><span className="text-white">ly</span></span>
+              <span className="font-mono font-bold text-lg"><span style={{background:"linear-gradient(90deg, var(--green) 0%, var(--teal) 60%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text"}}>Leash</span><span className="text-white">ly</span></span>
               <span className="text-[var(--text-ghost)] text-xs font-mono">© 2025 · Built for developers.</span>
             </div>
             <div className="flex gap-5">

@@ -74,8 +74,8 @@
     --r-sm:  6px;
     --r-md:  10px;
     --r-lg:  16px;
-    --r-xl:  24px;
-    --r-2xl: 32px;
+    --r-xl:  26px;
+    --r-2xl: 42px;
     --radius: var(--r-lg);
 
     /* Golden ratio spacing scale (base 8px × φ steps) */
@@ -136,22 +136,38 @@
     background: var(--surface-1);
     border: 1px solid var(--border-mid);
     border-radius: var(--r-xl);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    transition: border-color 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 -1px 0 rgba(0,0,0,0.18) inset,
+      0 1px 3px rgba(0,0,0,0.2);
   }
   .card:hover {
     border-color: var(--border-hi);
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.28),
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 -1px 0 rgba(0,0,0,0.18) inset;
   }
   .card-glow:hover {
     border-color: var(--green-ring);
-    box-shadow: 0 0 28px var(--green-glow), 0 0 1px var(--green-ring);
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 40px rgba(0,255,136,0.09),
+      0 0 80px rgba(0,221,204,0.04),
+      0 12px 40px rgba(0,0,0,0.35),
+      0 1px 0 rgba(255,255,255,0.04) inset;
   }
   .card-blue:hover {
-    border-color: rgba(68,136,255,0.25);
-    box-shadow: 0 0 28px var(--blue-glow);
+    border-color: rgba(68,136,255,0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 0 40px var(--blue-glow), 0 8px 28px rgba(0,0,0,0.28);
   }
   .card-violet:hover {
-    border-color: rgba(170,102,255,0.25);
-    box-shadow: 0 0 28px var(--violet-glow);
+    border-color: rgba(170,102,255,0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 0 40px var(--violet-glow), 0 8px 28px rgba(0,0,0,0.28);
   }
 
   /* ─── Buttons ─── */
@@ -165,10 +181,16 @@
     border: 1px solid transparent;
   }
   .btn-primary {
-    background: var(--green); color: var(--black); border-color: var(--green);
+    background: linear-gradient(135deg, var(--green) 0%, var(--teal) 60%);
+    color: var(--black); border-color: transparent;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 -1px 0 rgba(0,0,0,0.12) inset;
   }
-  .btn-primary:hover { background: var(--green-dim); border-color: var(--green-dim); transform: translateY(-1px); box-shadow: 0 4px 16px var(--green-glow); }
-  .btn-primary:active { transform: translateY(0); box-shadow: none; }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--green-dim) 0%, #00c4b4 60%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0,255,136,0.22), 0 8px 40px rgba(0,221,204,0.09), 0 1px 0 rgba(255,255,255,0.18) inset;
+  }
+  .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(0,255,136,0.15), 0 1px 0 rgba(255,255,255,0.1) inset; }
 
   .btn-ghost {
     background: transparent; color: var(--text-dim);
@@ -207,7 +229,11 @@
     font-size: 0.7rem; font-weight: 600; font-family: 'IBM Plex Mono', monospace;
     border: 1px solid transparent;
   }
-  .badge-green  { background: var(--green-glow);  color: var(--green);  border-color: var(--green-ring); }
+  .badge-green  {
+    background: linear-gradient(135deg, rgba(0,255,136,0.10) 0%, rgba(0,221,204,0.07) 60%);
+    color: var(--green);
+    border-color: rgba(0,255,136,0.28);
+  }
   .badge-blue   { background: var(--blue-glow);   color: var(--blue);   border-color: rgba(68,136,255,0.2); }
   .badge-violet { background: var(--violet-glow); color: var(--violet); border-color: rgba(170,102,255,0.2); }
   .badge-teal   { background: var(--teal-glow);   color: var(--teal);   border-color: rgba(0,221,204,0.2); }
@@ -296,8 +322,8 @@
 
   /* ─── Dot grid background (marketing page) ─── */
   .dot-grid {
-    background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
-    background-size: 28px 28px;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.075) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
   /* ─── Status dot ─── */
@@ -325,4 +351,70 @@
 
   /* text-balance polyfill */
   .text-balance { text-wrap: balance; }
+
+  /* ─── Grain texture overlay ─── */
+  .grain {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 998;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    mix-blend-mode: screen;
+  }
+
+  /* ─── Glass card / surface ─── */
+  .glass {
+    background: rgba(12,12,12,0.65);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  /* ─── Text gradients ─── */
+  .text-gradient-brand {
+    background: linear-gradient(90deg, var(--green) 0%, var(--teal) 33%, var(--blue) 66%, var(--violet) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-green-teal {
+    background: linear-gradient(90deg, var(--green) 0%, var(--teal) 60%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── 4-point hero gradient (60% color range, then transparent) ─── */
+  .gradient-4pt-hero {
+    background: linear-gradient(
+      135deg,
+      rgba(0,255,136,0.07)   0%,
+      rgba(0,221,204,0.05)  20%,
+      rgba(68,136,255,0.06)  40%,
+      rgba(170,102,255,0.04) 60%,
+      transparent           60%
+    );
+  }
+
+  /* ─── Section gradient divider ─── */
+  .gradient-line-h {
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent               0%,
+      rgba(0,255,136,0.25)     20%,
+      rgba(68,136,255,0.25)    50%,
+      rgba(170,102,255,0.18)   80%,
+      transparent              100%
+    );
+  }
+
+  /* ─── Premium section highlight ─── */
+  .section-glow {
+    background: linear-gradient(
+      160deg,
+      rgba(0,255,136,0.04)   0%,
+      rgba(0,221,204,0.03)  20%,
+      rgba(68,136,255,0.03)  40%,
+      rgba(170,102,255,0.02) 60%,
+      transparent           60%
+    );
+  }
 }

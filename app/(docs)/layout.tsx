@@ -1,18 +1,38 @@
 import type { Metadata } from "next";
 
+const BASE_URL = "https://www.leashly.dev";
+
 export const metadata: Metadata = {
-  title: "Documentation",
-  description: "Complete guide to integrating Leashly. Learn how to set up spend caps, rate limits, smart routing, and semantic caching for any LLM API in minutes.",
+  title: "Leashly Docs — LLM Proxy Integration Guide",
+  description:
+    "Complete guide to integrating Leashly. Set up spend caps, rate limits, injection protection, smart routing, and semantic caching for OpenAI, Anthropic, and Gemini in minutes.",
+  keywords: [
+    "leashly docs",
+    "LLM proxy documentation",
+    "OpenAI proxy setup",
+    "AI cost control guide",
+    "rate limit OpenAI API",
+    "prompt injection detection",
+    "semantic caching LLM",
+    "smart model routing",
+    "AI proxy quickstart",
+    "openai baseURL proxy",
+  ],
   alternates: {
-    canonical: "https://leashly.dev/docs",
+    canonical: `${BASE_URL}/docs`,
   },
   openGraph: {
-    title: "Leashly Documentation",
-    description: "Complete integration guide for Leashly — AI cost control and optimization proxy.",
-    url: "https://leashly.dev/docs",
+    title: "Leashly Documentation — LLM Proxy Integration Guide",
+    description:
+      "Set up spend caps, rate limits, and cost optimization for any LLM in minutes.",
+    url: `${BASE_URL}/docs`,
   },
 };
 
-export default function DocsLayout({ children }: { children: React.ReactNode }) {
+export default function DocsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <>{children}</>;
 }

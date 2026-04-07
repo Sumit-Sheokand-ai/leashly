@@ -3,30 +3,135 @@ import "./globals.css";
 import Script from "next/script";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 
+const BASE_URL = "https://leashly.dev";
+
 export const metadata: Metadata = {
-  title: "Leashly — AI Cost Control & Optimization Proxy",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Leashly — AI Cost Control & Proxy",
+    template: "%s | Leashly",
+  },
   description:
-    "Stop surprise AI bills. Leashly enforces spend caps, rate limits, and prompt injection protection — and actively cuts your AI bill with smart routing, semantic caching, and prompt compression.",
+    "Leashly sits between your app and any LLM. Enforce spend caps, rate limits, and prompt injection protection — and cut your AI bill with smart routing, semantic caching, and prompt compression.",
+  keywords: [
+    "AI cost control",
+    "LLM proxy",
+    "OpenAI cost optimization",
+    "AI spend cap",
+    "rate limiting LLM",
+    "prompt injection protection",
+    "semantic cache AI",
+    "smart routing LLM",
+    "AI API proxy",
+    "reduce OpenAI costs",
+    "AI budget management",
+    "leashly",
+  ],
+  authors: [{ name: "Leashly", url: BASE_URL }],
+  creator: "Leashly",
+  publisher: "Leashly",
+  category: "Technology",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: BASE_URL,
+  },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/logo-icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico",         sizes: "any" },
+      { url: "/favicon-16.png",      sizes: "16x16",  type: "image/png" },
+      { url: "/favicon-32.png",      sizes: "32x32",  type: "image/png" },
+      { url: "/logo-icon.svg",       type: "image/svg+xml" },
     ],
-    apple: "/logo-icon-180.png",
-    other: [{ rel: "icon", url: "/logo-icon-192.png", sizes: "192x192" }],
+    apple:    [{ url: "/logo-icon-180.png", sizes: "180x180" }],
+    other:    [{ rel: "icon", url: "/logo-icon-192.png", sizes: "192x192" }],
+    shortcut: "/favicon.ico",
   },
+  manifest: "/manifest.json",
   openGraph: {
-    title: "Leashly — AI Cost Control & Optimization Proxy",
-    description: "Stop surprise AI bills. Smart routing, semantic cache, and prompt compression cut your AI costs by up to 60%.",
-    type: "website",
-    images: [{ url: "/logo-icon.png", width: 512, height: 512 }],
+    type:        "website",
+    locale:      "en_US",
+    url:         BASE_URL,
+    siteName:    "Leashly",
+    title:       "Leashly — AI Cost Control & Proxy",
+    description: "Stop surprise AI bills. Smart routing, semantic cache, and prompt compression cut your AI costs by up to 60%. Works with OpenAI, Anthropic, and Gemini.",
+    images: [
+      {
+        url:    "/og-image.png",
+        width:  1200,
+        height: 630,
+        alt:    "Leashly — AI Cost Control & Proxy",
+      },
+    ],
   },
+  twitter: {
+    card:        "summary_large_image",
+    site:        "@leashlydev",
+    creator:     "@leashlydev",
+    title:       "Leashly — AI Cost Control & Proxy",
+    description: "Stop surprise AI bills. Smart routing, semantic cache, and prompt compression cut your AI costs by up to 60%.",
+    images:      ["/og-image.png"],
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION ?? "",
+  },
+};
+
+// JSON-LD structured data
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Leashly",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any",
+  url: BASE_URL,
+  description:
+    "AI cost control and optimization proxy. Enforce spend caps, rate limits, and prompt injection protection for any LLM API.",
+  offers: [
+    {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      name: "Free Plan",
+    },
+    {
+      "@type": "Offer",
+      price: "9",
+      priceCurrency: "CAD",
+      name: "Pro Plan",
+      billingIncrement: "month",
+    },
+  ],
+  featureList: [
+    "Spend caps per user and model",
+    "Rate limiting",
+    "Prompt injection protection",
+    "Smart model routing",
+    "Semantic caching",
+    "Prompt compression",
+    "Real-time cost attribution",
+    "Email alerts",
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>
+        {/* JSON-LD structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Google Tag Manager */}
         <script
           dangerouslySetInnerHTML={{

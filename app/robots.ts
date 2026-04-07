@@ -1,16 +1,22 @@
 import { MetadataRoute } from "next";
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://leashly.dev";
+const BASE_URL = "https://leashly.dev";
 
+export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/docs", "/login", "/register"],
-        disallow: ["/dashboard/", "/api/"],
+        allow: ["/", "/docs", "/login", "/register", "/privacy", "/terms"],
+        disallow: ["/dashboard/", "/api/", "/invite"],
+      },
+      {
+        // Block AI crawlers from scraping the app
+        userAgent: ["GPTBot", "ChatGPT-User", "CCBot", "anthropic-ai", "Claude-Web"],
+        disallow: ["/"],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: `${BASE_URL}/sitemap.xml`,
+    host: BASE_URL,
   };
 }

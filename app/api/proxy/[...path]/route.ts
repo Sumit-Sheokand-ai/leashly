@@ -10,6 +10,12 @@ import { checkCache, storeCache } from "@/lib/leashly-cache";
 import { compressSystemPrompt } from "@/lib/leashly-compressor";
 import type { SpendCapConfig, RateLimitConfig, InjectionFilterConfig } from "@/types";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key, anthropic-version",
+};
+
 const PROVIDER_ENDPOINTS: Record<string, string> = {
   openai:    "https://api.openai.com",
   anthropic: "https://api.anthropic.com",
@@ -20,7 +26,7 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
 function errorResponse(code: number, message: string, details?: string) {
   return NextResponse.json(
     { error: { message, type: code === 429 ? "rate_limit_error" : "forbidden", code: code === 429 ? "rate_limit_exceeded" : "content_policy_violation", ...(details ? { details } : {}) } },
-    { status: code }
+    { status: code, headers: CORS_HEADERS }
   );
 }
 
@@ -42,6 +48,18 @@ async function checkAlerts(db: ReturnType<typeof createSupabaseAdmin>, userId: s
   }
 }
 
+// ── CORS preflight ──
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { service: "Leashly Proxy", version: "1.0.0", compatible: "openai-sdk" },
+    { headers: CORS_HEADERS }
+  );
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const startTime = Date.now();
   const db = createSupabaseAdmin();
@@ -50,7 +68,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
   if (!authHeader?.startsWith("Bearer ")) return errorResponse(401, "Missing or invalid Authorization header");
   const proxyKey = authHeader.slice(7).trim();
 
-  const { data: apiKeyRecord } = await db.from("ApiKey").select("*").eq("proxyKey", proxyKey).single();
+  const { data: apiKeyRecord, error: keyError } = await db.from("ApiKey").select("*").eq("proxyKey", proxyKey).single();
+  if (keyError) console.error("[proxy] DB key lookup error:", keyError.message);
   if (!apiKeyRecord || !apiKeyRecord.isActive) return errorResponse(401, "Invalid or inactive proxy key");
 
   const userId = apiKeyRecord.userId;
@@ -62,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     try { body = await req.json(); } catch { return errorResponse(400, "Invalid JSON body"); }
   }
 
-  // --- Existing rules (rate limit, spend cap, injection) ---
+  // ── Rules: rate limit, spend cap, injection ──
   const { data: rules } = await db.from("Rule").select("*").eq("userId", userId).eq("isActive", true);
   const orderedRules = [
     ...(rules ?? []).filter((r: { type: string }) => r.type === "rate_limit"),
@@ -94,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     }
   }
 
-  // --- NEW: Smart routing ---
+  // ── Smart routing ──
   const requestedModel = (body as Record<string, unknown>)?.model as string ?? "unknown";
   const messages = (body as Record<string, unknown>)?.messages as Array<{ role: string; content: string }> ?? [];
 
@@ -102,7 +121,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     model: requestedModel, provider: apiKeyRecord.provider, wasRouted: false, originalModel: requestedModel, routingSavings: 0,
   }));
 
-  // --- NEW: Prompt compression (system prompt only, non-streaming) ---
+  // ── Prompt compression ──
   const isStreaming = typeof body === "object" && body !== null && (body as Record<string, unknown>).stream === true;
   let finalBody = body as Record<string, unknown>;
   let compressionResult = { originalTokens: 0, compressedTokens: 0, savedTokens: 0, compressionSavings: 0, compressedSystemPrompt: "" };
@@ -120,12 +139,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     }
   }
 
-  // Override model with routed model
-  if (routeResult.wasRouted) {
-    finalBody = { ...finalBody, model: routeResult.model };
-  }
+  if (routeResult.wasRouted) finalBody = { ...finalBody, model: routeResult.model };
 
-  // --- NEW: Cache check (non-streaming only) ---
+  // ── Cache check ──
   const finalMessages = (finalBody.messages as Array<{ role: string; content: string }>) ?? messages;
   const estimatedTokens = Math.ceil(finalMessages.map((m) => m.content).join(" ").length / 4);
   const estimatedCost = calculateCost(routeResult.model, estimatedTokens, estimatedTokens / 2);
@@ -139,30 +155,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
         promptTokens: 0, completionTokens: 0, totalCost: 0, flagged: false,
         durationMs: Date.now() - startTime, statusCode: 200,
         wasRouted: routeResult.wasRouted, originalModel: routeResult.originalModel, actualModel: routeResult.model,
-        routingSavings: routeResult.routingSavings,
-        wasCacheHit: true, cacheSavings: cacheHit.savedCost,
+        routingSavings: routeResult.routingSavings, wasCacheHit: true, cacheSavings: cacheHit.savedCost,
         wasCompressed: compressionResult.savedTokens > 0,
         originalPromptTokens: compressionResult.originalTokens || null,
         compressedTokens: compressionResult.compressedTokens || null,
-        compressionSavings: compressionResult.compressionSavings,
-        totalSavings,
+        compressionSavings: compressionResult.compressionSavings, totalSavings,
       });
       return NextResponse.json(cacheHit.response, {
-        headers: { "x-leashly-cache": "hit", "x-leashly-saved": totalSavings.toFixed(6) },
+        headers: { ...CORS_HEADERS, "x-leashly-cache": "hit", "x-leashly-saved": totalSavings.toFixed(6) },
       });
     }
   }
 
-  // --- Forward to upstream ---
+  // ── Forward to upstream ──
   const { path: pathSegments = [] } = await params;
   const provider = routeResult.provider || apiKeyRecord.provider;
-  const upstreamUrl = (PROVIDER_ENDPOINTS[provider] ?? PROVIDER_ENDPOINTS.openai) + "/" + pathSegments.join("/");
-  const realApiKey = decrypt(apiKeyRecord.encryptedKey);
-  const detectedProvider = detectProvider(routeResult.model) || provider;
 
-  const upstreamHeaders = new Headers();
+  // Build upstream URL — strip leashly prefix, keep v1/... path
+  // pathSegments = ["v1","chat","completions"] → upstream = "https://api.openai.com/v1/chat/completions"
+  const upstreamBase = PROVIDER_ENDPOINTS[provider] ?? PROVIDER_ENDPOINTS.openai;
+  const upstreamPath = pathSegments.join("/");
+  const upstreamUrl  = `${upstreamBase}/${upstreamPath}`;
+
+  let realApiKey: string;
+  try {
+    realApiKey = decrypt(apiKeyRecord.encryptedKey);
+  } catch (err) {
+    console.error("[proxy] Decrypt failed:", err);
+    return errorResponse(500, "Failed to decrypt API key — check ENCRYPTION_KEY env var");
+  }
+
+  const detectedProvider = detectProvider(routeResult.model) || provider;
+  const upstreamHeaders  = new Headers();
   upstreamHeaders.set("Content-Type", "application/json");
   upstreamHeaders.set("Authorization", `Bearer ${realApiKey}`);
+
   if (provider === "anthropic") {
     upstreamHeaders.set("anthropic-version", "2023-06-01");
     upstreamHeaders.set("x-api-key", realApiKey);
@@ -177,15 +204,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
   try {
     upstreamResponse = await fetch(upstreamUrl, { method: "POST", headers: upstreamHeaders, body: JSON.stringify(finalBody) });
   } catch (err) {
-    return NextResponse.json({ error: { message: "Failed to reach upstream provider", details: String(err) } }, { status: 502 });
+    return NextResponse.json(
+      { error: { message: "Failed to reach upstream provider", details: String(err) } },
+      { status: 502, headers: CORS_HEADERS }
+    );
   }
 
   const durationMs = Date.now() - startTime;
 
-  // --- Streaming path (no cache, savings still tracked) ---
+  // ── Streaming ──
   if (isStreaming && upstreamResponse.body) {
-    let promptTokens = 0;
-    let completionTokens = 0;
+    let promptTokens = 0, completionTokens = 0;
     const stream = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
@@ -204,31 +233,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
             userId, apiKeyId: apiKeyRecord.id, provider: detectedProvider, model: routeResult.model,
             promptTokens, completionTokens, totalCost: cost, flagged: false, durationMs, statusCode: upstreamResponse.status,
             wasRouted: routeResult.wasRouted, originalModel: routeResult.originalModel, actualModel: routeResult.model,
-            routingSavings: routeResult.routingSavings,
-            wasCacheHit: false, cacheSavings: 0,
+            routingSavings: routeResult.routingSavings, wasCacheHit: false, cacheSavings: 0,
             wasCompressed: compressionResult.savedTokens > 0,
             originalPromptTokens: compressionResult.originalTokens || null,
             compressedTokens: compressionResult.compressedTokens || null,
-            compressionSavings: compressionResult.compressionSavings,
-            totalSavings,
+            compressionSavings: compressionResult.compressionSavings, totalSavings,
           });
           await checkAlerts(db, userId, cost, false);
         } catch {}
       },
     });
-    const responseHeaders = new Headers();
-    responseHeaders.set("Content-Type", "text/event-stream");
-    responseHeaders.set("Cache-Control", "no-cache");
-    responseHeaders.set("Connection", "keep-alive");
-    responseHeaders.set("X-Accel-Buffering", "no");
-    if (routeResult.wasRouted) responseHeaders.set("x-leashly-routed-to", routeResult.model);
-    return new Response(upstreamResponse.body.pipeThrough(stream), { status: upstreamResponse.status, headers: responseHeaders });
+    const respHeaders = new Headers(CORS_HEADERS);
+    respHeaders.set("Content-Type", "text/event-stream");
+    respHeaders.set("Cache-Control", "no-cache");
+    respHeaders.set("Connection", "keep-alive");
+    respHeaders.set("X-Accel-Buffering", "no");
+    if (routeResult.wasRouted) respHeaders.set("x-leashly-routed-to", routeResult.model);
+    return new Response(upstreamResponse.body.pipeThrough(stream), { status: upstreamResponse.status, headers: respHeaders });
   }
 
-  // --- Non-streaming path ---
+  // ── Non-streaming ──
   let responseBody: unknown;
-  let promptTokens = 0;
-  let completionTokens = 0;
+  let promptTokens = 0, completionTokens = 0;
   try {
     responseBody = await upstreamResponse.json();
     const usage = (responseBody as Record<string, Record<string, number>>).usage;
@@ -237,35 +263,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     responseBody = { raw: await upstreamResponse.text() };
   }
 
-  const totalCost = calculateCost(routeResult.model, promptTokens, completionTokens);
+  const totalCost    = calculateCost(routeResult.model, promptTokens, completionTokens);
   const totalSavings = routeResult.routingSavings + compressionResult.compressionSavings;
 
   await db.from("RequestLog").insert({
     userId, apiKeyId: apiKeyRecord.id, provider: detectedProvider, model: routeResult.model,
     promptTokens, completionTokens, totalCost, flagged: false, durationMs: Date.now() - startTime, statusCode: upstreamResponse.status,
     wasRouted: routeResult.wasRouted, originalModel: routeResult.originalModel, actualModel: routeResult.model,
-    routingSavings: routeResult.routingSavings,
-    wasCacheHit: false, cacheSavings: 0,
+    routingSavings: routeResult.routingSavings, wasCacheHit: false, cacheSavings: 0,
     wasCompressed: compressionResult.savedTokens > 0,
     originalPromptTokens: compressionResult.originalTokens || null,
     compressedTokens: compressionResult.compressedTokens || null,
-    compressionSavings: compressionResult.compressionSavings,
-    totalSavings,
+    compressionSavings: compressionResult.compressionSavings, totalSavings,
   });
   await checkAlerts(db, userId, totalCost, false);
 
-  // Store in cache for next time
   if (upstreamResponse.status === 200) {
     storeCache(userId, routeResult.model, finalMessages, responseBody, promptTokens + completionTokens, totalCost).catch(() => {});
   }
 
-  const resHeaders: Record<string, string> = {};
+  const resHeaders: Record<string, string> = { ...CORS_HEADERS };
   if (routeResult.wasRouted) resHeaders["x-leashly-routed-to"] = routeResult.model;
-  if (totalSavings > 0) resHeaders["x-leashly-saved"] = totalSavings.toFixed(6);
+  if (totalSavings > 0)      resHeaders["x-leashly-saved"]     = totalSavings.toFixed(6);
 
   return NextResponse.json(responseBody, { status: upstreamResponse.status, headers: resHeaders });
-}
-
-export async function GET() {
-  return NextResponse.json({ service: "Leashly Proxy", version: "0.2.0", compatible: "openai-sdk" });
 }

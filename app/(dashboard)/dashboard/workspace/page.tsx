@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import {
   Users, Plus, Crown, Code2, Eye, RefreshCw,
   Trash2, UserPlus, AlertTriangle, CheckCircle, Shield,
+  ChevronDown, ArrowLeft,
 } from "lucide-react";
 import { useDashboardData } from "@/lib/use-dashboard-data";
 import { ProGate } from "@/components/layout/plan-gate";
@@ -42,21 +43,17 @@ export default function WorkspacePage() {
 
   const { data, loading, refresh } = useDashboardData<WorkspaceData>("dashboard:workspace", fetcher);
 
-  const plan        = data?.plan ?? "free";
-  const currentUserId = data?.userId ?? "";
-  const workspace   = data?.memberships?.[0]?.workspace ?? null;
-  const members     = workspace?.members ?? [];
-  const maxMembers  = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS]?.teamMembers ?? 0;
-  const atMemberLimit = members.length >= maxMembers;
+  const plan           = data?.plan ?? "free";
+  const currentUserId  = data?.userId ?? "";
+  const allWorkspaces  = data?.memberships?.map(m => m.workspace) ?? [];
+  const maxMembers     = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS]?.teamMembers ?? 0;
 
-  // My role in this workspace
-  const myMembership = members.find(m => m.user.id === currentUserId);
-  const isOwner = myMembership?.role === "owner";
-
+  const [activeWsIndex, setActiveWsIndex]     = useState(0);
+  const [showWsList, setShowWsList]           = useState(false);
   const [creating, setCreating]               = useState(false);
   const [wsName, setWsName]                   = useState("");
   const [wsCreating, setWsCreating]           = useState(false);
-  const [inviteInput, setInviteInput]         = useState("");   // email or userId
+  const [inviteInput, setInviteInput]         = useState("");
   const [inviteRole, setInviteRole]           = useState<Role>("developer");
   const [inviting, setInviting]               = useState(false);
   const [msg, setMsg]                         = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -80,7 +77,7 @@ export default function WorkspacePage() {
         </div>
         <ProGate feature="Workspace">
           <div className="text-sm text-[#555555] max-w-sm mx-auto mb-2">
-            Team features included: invite up to 10 members, shared spend tracking, role-based access.
+            Team features: invite up to 10 members, shared spend tracking, role-based access.
           </div>
         </ProGate>
       </div>
@@ -93,6 +90,12 @@ export default function WorkspacePage() {
     </div>
   );
 
+  const workspace      = allWorkspaces[activeWsIndex] ?? null;
+  const members        = workspace?.members ?? [];
+  const atMemberLimit  = members.length >= maxMembers;
+  const myMembership   = members.find(m => m.user.id === currentUserId);
+  const isOwner        = myMembership?.role === "owner";
+
   // ── Create workspace ──
   async function createWorkspace() {
     if (!wsName.trim()) return;
@@ -103,7 +106,13 @@ export default function WorkspacePage() {
       body: JSON.stringify({ name: wsName }),
     });
     setWsCreating(false);
-    if (res.ok) { setCreating(false); setWsName(""); refresh(); }
+    if (res.ok) {
+      setCreating(false);
+      setWsName("");
+      await refresh();
+      // Switch to the newly created workspace (last in list)
+      setActiveWsIndex(allWorkspaces.length);
+    }
   }
 
   // ── Delete workspace ──
@@ -118,7 +127,7 @@ export default function WorkspacePage() {
     const d = await res.json();
     setDeletingWs(false);
     setShowDeleteWs(false);
-    if (res.ok) { refresh(); }
+    if (res.ok) { setActiveWsIndex(0); refresh(); }
     else showMsg(d.error ?? "Failed to delete workspace.", "error");
   }
 
@@ -127,13 +136,10 @@ export default function WorkspacePage() {
     if (!inviteInput.trim() || !workspace) return;
     if (atMemberLimit) { showMsg(`Workspace is full (${maxMembers} members max).`, "error"); return; }
     setInviting(true);
-
-    // Detect if input looks like a UUID (userId) or email
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inviteInput.trim());
     const body = isUUID
       ? { workspaceId: workspace.id, userId: inviteInput.trim(), role: inviteRole }
       : { workspaceId: workspace.id, email: inviteInput.trim(), role: inviteRole };
-
     const res = await fetch("/api/workspace/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -176,35 +182,14 @@ export default function WorkspacePage() {
     if (res.ok) refresh();
   }
 
-  // ── No workspace yet ──
-  if (!workspace && !creating) {
-    return (
-      <div className="max-w-2xl">
-        <div className="mb-6">
-          <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2"><Users size={18} /> Workspace</h2>
-          <p className="text-sm text-[#555555] mt-0.5">Invite your team and manage shared AI usage.</p>
-        </div>
-        <div className="rounded-2xl border border-[#1a1a1a] bg-[#0e0e0e] p-10 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#111111] border border-[#1a1a1a] flex items-center justify-center mx-auto">
-            <Users size={24} className="text-[#333333]" />
-          </div>
-          <div>
-            <h3 className="font-mono font-bold text-white">No workspace yet</h3>
-            <p className="text-sm text-[#555555] mt-1">Create a workspace to invite your team and share a unified AI budget.</p>
-          </div>
-          <button onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-2 bg-white hover:bg-zinc-200 px-5 py-2.5 text-sm font-semibold text-black rounded-xl transition-all">
-            <Plus size={14} /> Create workspace
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // ── Create form ──
   if (creating) {
     return (
       <div className="max-w-md space-y-4">
+        <button onClick={() => setCreating(false)}
+          className="flex items-center gap-1.5 text-sm text-[#555555] hover:text-white transition-colors">
+          <ArrowLeft size={14} /> Back to workspaces
+        </button>
         <h2 className="font-mono text-xl font-bold text-white">Create workspace</h2>
         <p className="text-sm text-[#555555]">Give your team a shared home on Leashly.</p>
         <input className={inputCls} placeholder="Acme AI Team" value={wsName}
@@ -224,33 +209,105 @@ export default function WorkspacePage() {
     );
   }
 
+  // ── Workspace list / no workspace ──
+  if (!workspace || showWsList) {
+    return (
+      <div className="max-w-2xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2"><Users size={18} /> Workspaces</h2>
+            <p className="text-sm text-[#555555] mt-0.5">{allWorkspaces.length} workspace{allWorkspaces.length !== 1 ? "s" : ""}</p>
+          </div>
+          <button onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 bg-white hover:bg-zinc-200 px-4 py-2 text-sm font-semibold text-black rounded-xl transition-all">
+            <Plus size={14} /> New workspace
+          </button>
+        </div>
+
+        {allWorkspaces.length === 0 ? (
+          <div className="rounded-2xl border border-[#1a1a1a] bg-[#0e0e0e] p-10 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#111111] border border-[#1a1a1a] flex items-center justify-center mx-auto">
+              <Users size={24} className="text-[#333333]" />
+            </div>
+            <div>
+              <h3 className="font-mono font-bold text-white">No workspaces yet</h3>
+              <p className="text-sm text-[#555555] mt-1">Create a workspace to invite your team and share a unified AI budget.</p>
+            </div>
+            <button onClick={() => setCreating(true)}
+              className="inline-flex items-center gap-2 bg-white hover:bg-zinc-200 px-5 py-2.5 text-sm font-semibold text-black rounded-xl transition-all">
+              <Plus size={14} /> Create workspace
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {allWorkspaces.map((ws, i) => {
+              const myRole = ws.members.find(m => m.user.id === currentUserId)?.role ?? "member";
+              return (
+                <button key={ws.id} onClick={() => { setActiveWsIndex(i); setShowWsList(false); }}
+                  className="w-full flex items-center justify-between bg-[#0e0e0e] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-2xl px-4 py-3.5 transition-all text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#111111] border border-[#1a1a1a] flex items-center justify-center text-sm font-bold text-white uppercase">
+                      {ws.name[0]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{ws.name}</p>
+                      <p className="text-xs text-[#444444]">{ws.members.length} member{ws.members.length !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${
+                      myRole === "owner" ? "bg-[#ffaa44]/10 text-[#ffaa44]" : "bg-[#1a1a1a] text-[#555555]"
+                    }`}>{myRole}</span>
+                    <ChevronDown size={14} className="text-[#333333] -rotate-90" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── Main workspace view ──
   return (
     <div className="max-w-3xl space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-mono text-lg font-bold text-white flex items-center gap-2">
-            <Users size={18} className="text-[#888888]" /> {workspace!.name}
-          </h2>
-          <p className="text-sm text-[#555555] mt-0.5">
-            {members.length} / {maxMembers} members · <span className="capitalize">{workspace!.plan} plan</span>
-          </p>
-        </div>
         <div className="flex items-center gap-3">
+          {/* Back / switcher */}
+          <button onClick={() => setShowWsList(true)}
+            className="flex items-center gap-1.5 text-sm text-[#555555] hover:text-white transition-colors">
+            <ArrowLeft size={14} />
+            {allWorkspaces.length > 1 ? "Switch" : "Workspaces"}
+          </button>
+          <span className="text-[#222222]">/</span>
+          <div>
+            <h2 className="font-mono text-lg font-bold text-white">{workspace.name}</h2>
+            <p className="text-xs text-[#555555]">{members.length} / {maxMembers} members</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Member bar */}
           <div className="flex items-center gap-2 text-xs text-[#555555]">
-            <div className="w-20 bg-[#1a1a1a] rounded-full h-1.5">
+            <div className="w-16 bg-[#1a1a1a] rounded-full h-1.5">
               <div className="h-1.5 rounded-full bg-[#00ff88] transition-all"
                 style={{ width: `${Math.min((members.length / maxMembers) * 100, 100)}%` }} />
             </div>
             <span className="font-mono">{members.length}/{maxMembers}</span>
           </div>
-          {/* Delete workspace — owner only */}
+          {/* Add workspace shortcut */}
+          <button onClick={() => setCreating(true)}
+            className="flex items-center gap-1 text-xs text-[#555555] hover:text-white border border-[#1a1a1a] hover:border-[#333333] px-2.5 py-1.5 rounded-lg transition-all">
+            <Plus size={11} /> New
+          </button>
+          {/* Delete — owner only */}
           {isOwner && !showDeleteWs && (
             <button onClick={() => setShowDeleteWs(true)}
-              className="text-xs text-[#555555] hover:text-[#ff6666] border border-[#1a1a1a] hover:border-[#ff4444]/30 px-3 py-1.5 rounded-xl transition-all">
-              Delete workspace
+              className="text-xs text-[#555555] hover:text-[#ff6666] border border-[#1a1a1a] hover:border-[#ff4444]/30 px-2.5 py-1.5 rounded-lg transition-all">
+              Delete
             </button>
           )}
         </div>
@@ -266,13 +323,13 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Delete workspace confirm */}
+      {/* Delete confirm */}
       {showDeleteWs && (
         <div className="bg-[#0e0e0e] border border-[#ff4444]/20 rounded-2xl p-5 space-y-3">
           <div className="flex items-start gap-2">
             <AlertTriangle size={14} className="text-[#ff6666] mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm text-[#ff6666] font-medium">Delete &quot;{workspace!.name}&quot;?</p>
+              <p className="text-sm text-[#ff6666] font-medium">Delete &quot;{workspace.name}&quot;?</p>
               <p className="text-xs text-[#888888] mt-1">This will remove all members and cannot be undone.</p>
             </div>
           </div>
@@ -289,7 +346,7 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Invite section — owner/admin only */}
+      {/* Invite — owner/admin only */}
       {(isOwner || myMembership?.role === "admin") && (
         <div className="bg-[#0e0e0e] border border-[#1a1a1a] rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2">
@@ -301,7 +358,6 @@ export default function WorkspacePage() {
               </span>
             )}
           </div>
-
           <div className="flex gap-2">
             <input className={inputCls}
               placeholder="Email or User ID (from their Settings page)"
@@ -321,13 +377,10 @@ export default function WorkspacePage() {
               {inviting ? "Adding…" : "Add"}
             </button>
           </div>
-
           <p className="text-xs text-[#444444]">
             Only users with an existing Leashly account can be added. Enter their email or User ID (visible in their Settings page).
           </p>
-
-          {/* Role cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {Object.entries(ROLE_META).filter(([r]) => r !== "owner").map(([role, meta]) => (
               <div key={role} onClick={() => setInviteRole(role as Role)}
                 className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
@@ -355,18 +408,12 @@ export default function WorkspacePage() {
                 <p className="text-xs text-[#444444] truncate">{m.user.email} · joined {new Date(m.joinedAt).toLocaleDateString()}</p>
               </div>
             </div>
-
             <div className="flex items-center gap-2 shrink-0">
-              {/* Role — owner can change non-owner roles */}
               {isOwner && m.role !== "owner" ? (
-                <select
-                  value={m.role}
-                  disabled={changingRoleId === m.id}
+                <select value={m.role} disabled={changingRoleId === m.id}
                   onChange={e => changeRole(m.id, e.target.value as Role)}
                   className="bg-[#111111] border border-[#222222] rounded-lg px-2 py-1 text-xs text-[#888888] outline-none focus:border-[#00ff88]/40 transition-all disabled:opacity-50">
-                  {ROLES.map(r => (
-                    <option key={r} value={r}>{ROLE_META[r].label}</option>
-                  ))}
+                  {ROLES.map(r => <option key={r} value={r}>{ROLE_META[r].label}</option>)}
                 </select>
               ) : (
                 <div className="flex items-center gap-1.5 rounded-full bg-[#1a1a1a] px-3 py-1">
@@ -374,16 +421,10 @@ export default function WorkspacePage() {
                   <span className="text-xs text-[#888888] capitalize">{m.role}</span>
                 </div>
               )}
-
-              {/* Remove member — owner only, not self */}
               {isOwner && m.role !== "owner" && (
-                <button
-                  onClick={() => removeMember(m.id)}
-                  disabled={removingId === m.id}
+                <button onClick={() => removeMember(m.id)} disabled={removingId === m.id}
                   className="p-1.5 text-[#333333] hover:text-[#ff4444] hover:bg-[#ff4444]/8 rounded-lg transition-all disabled:opacity-50">
-                  {removingId === m.id
-                    ? <RefreshCw size={13} className="animate-spin" />
-                    : <Trash2 size={13} />}
+                  {removingId === m.id ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 </button>
               )}
             </div>

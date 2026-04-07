@@ -1,13 +1,21 @@
-import { prisma } from "./prisma";
+// lib/rate-limit.ts — fully on Supabase (no Prisma)
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-interface RateLimitConfig {
+export interface RateLimitConfig {
   requestsPerMinute?: number;
   requestsPerHour?: number;
   requestsPerDay?: number;
   per: "account" | "api-key" | "ip";
 }
 
-// In-memory token bucket store (resets on restart — acceptable for MVP)
+export interface SpendCapConfig {
+  dailyLimit?: number;
+  weeklyLimit?: number;
+  monthlyLimit?: number;
+  action: "block" | "alert" | "both";
+}
+
+// In-memory token bucket (resets on cold start — fine for serverless MVP)
 const buckets = new Map<string, { tokens: number; lastRefill: number }>();
 
 export async function checkRateLimit(
@@ -16,74 +24,50 @@ export async function checkRateLimit(
   ip: string,
   config: RateLimitConfig
 ): Promise<{ allowed: boolean; reason?: string }> {
-  const now = Date.now();
-  const identifier =
-    config.per === "account"
-      ? userId
-      : config.per === "api-key"
-      ? apiKeyId
-      : ip;
+  const now     = Date.now();
+  const ident   = config.per === "account" ? userId : config.per === "api-key" ? apiKeyId : ip;
+  const db      = createSupabaseAdmin();
 
-  // Check per-minute rate limit using in-memory token bucket
+  // ── Per-minute: in-memory token bucket ──
   if (config.requestsPerMinute) {
-    const key = `minute:${identifier}`;
-    const bucket = buckets.get(key) ?? {
-      tokens: config.requestsPerMinute,
-      lastRefill: now,
-    };
-    const elapsed = (now - bucket.lastRefill) / 1000 / 60; // minutes
-    const refilled = Math.floor(elapsed * config.requestsPerMinute);
-    bucket.tokens = Math.min(
-      config.requestsPerMinute,
-      bucket.tokens + refilled
-    );
-    if (refilled > 0) bucket.lastRefill = now;
-
+    const key    = `minute:${ident}`;
+    const bucket = buckets.get(key) ?? { tokens: config.requestsPerMinute, lastRefill: now };
+    const mins   = (now - bucket.lastRefill) / 60_000;
+    const refill = Math.floor(mins * config.requestsPerMinute);
+    bucket.tokens = Math.min(config.requestsPerMinute, bucket.tokens + refill);
+    if (refill > 0) bucket.lastRefill = now;
     if (bucket.tokens < 1) {
-      return { allowed: false, reason: `Rate limit exceeded: ${config.requestsPerMinute} requests/minute` };
+      return { allowed: false, reason: `Rate limit: ${config.requestsPerMinute} req/min` };
     }
     bucket.tokens -= 1;
     buckets.set(key, bucket);
   }
 
-  // Check per-hour using DB (persistent)
+  // ── Per-hour: DB count ──
   if (config.requestsPerHour) {
-    const hourAgo = new Date(now - 60 * 60 * 1000);
-    const count = await prisma.requestLog.count({
-      where: {
-        userId,
-        apiKeyId: config.per === "api-key" ? apiKeyId : undefined,
-        timestamp: { gte: hourAgo },
-      },
-    });
-    if (count >= config.requestsPerHour) {
-      return { allowed: false, reason: `Rate limit exceeded: ${config.requestsPerHour} requests/hour` };
+    const since = new Date(now - 3_600_000).toISOString();
+    const q = db.from("RequestLog").select("id", { count: "exact", head: true })
+      .eq("userId", userId).gte("timestamp", since);
+    if (config.per === "api-key") q.eq("apiKeyId", apiKeyId);
+    const { count } = await q;
+    if ((count ?? 0) >= config.requestsPerHour) {
+      return { allowed: false, reason: `Rate limit: ${config.requestsPerHour} req/hr` };
     }
   }
 
-  // Check per-day using DB
+  // ── Per-day: DB count ──
   if (config.requestsPerDay) {
-    const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
-    const count = await prisma.requestLog.count({
-      where: {
-        userId,
-        apiKeyId: config.per === "api-key" ? apiKeyId : undefined,
-        timestamp: { gte: dayAgo },
-      },
-    });
-    if (count >= config.requestsPerDay) {
-      return { allowed: false, reason: `Rate limit exceeded: ${config.requestsPerDay} requests/day` };
+    const since = new Date(now - 86_400_000).toISOString();
+    const q = db.from("RequestLog").select("id", { count: "exact", head: true })
+      .eq("userId", userId).gte("timestamp", since);
+    if (config.per === "api-key") q.eq("apiKeyId", apiKeyId);
+    const { count } = await q;
+    if ((count ?? 0) >= config.requestsPerDay) {
+      return { allowed: false, reason: `Rate limit: ${config.requestsPerDay} req/day` };
     }
   }
 
   return { allowed: true };
-}
-
-interface SpendCapConfig {
-  dailyLimit?: number;
-  weeklyLimit?: number;
-  monthlyLimit?: number;
-  action: "block" | "alert" | "both";
 }
 
 export async function checkSpendCap(
@@ -91,48 +75,45 @@ export async function checkSpendCap(
   config: SpendCapConfig
 ): Promise<{ allowed: boolean; reason?: string }> {
   const now = Date.now();
+  const db  = createSupabaseAdmin();
+
+  async function getSpend(since: string): Promise<number> {
+    const { data } = await db
+      .from("RequestLog")
+      .select("totalCost")
+      .eq("userId", userId)
+      .gte("timestamp", since);
+    return (data ?? []).reduce((s: number, r: { totalCost: number }) => s + (r.totalCost ?? 0), 0);
+  }
+
+  const shouldBlock = (action: string) => action === "block" || action === "both";
 
   if (config.dailyLimit) {
-    const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
-    const result = await prisma.requestLog.aggregate({
-      where: { userId, timestamp: { gte: dayAgo } },
-      _sum: { totalCost: true },
-    });
-    const spent = result._sum.totalCost ?? 0;
+    const spent = await getSpend(new Date(now - 86_400_000).toISOString());
     if (spent >= config.dailyLimit) {
       return {
-        allowed: config.action === "alert",
-        reason: `Daily spend cap of $${config.dailyLimit} exceeded (spent: $${spent.toFixed(4)})`,
+        allowed: !shouldBlock(config.action),
+        reason: `Daily spend cap $${config.dailyLimit} exceeded (spent: $${spent.toFixed(4)})`,
       };
     }
   }
 
   if (config.weeklyLimit) {
-    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
-    const result = await prisma.requestLog.aggregate({
-      where: { userId, timestamp: { gte: weekAgo } },
-      _sum: { totalCost: true },
-    });
-    const spent = result._sum.totalCost ?? 0;
+    const spent = await getSpend(new Date(now - 604_800_000).toISOString());
     if (spent >= config.weeklyLimit) {
       return {
-        allowed: config.action === "alert",
-        reason: `Weekly spend cap of $${config.weeklyLimit} exceeded (spent: $${spent.toFixed(4)})`,
+        allowed: !shouldBlock(config.action),
+        reason: `Weekly spend cap $${config.weeklyLimit} exceeded (spent: $${spent.toFixed(4)})`,
       };
     }
   }
 
   if (config.monthlyLimit) {
-    const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
-    const result = await prisma.requestLog.aggregate({
-      where: { userId, timestamp: { gte: monthAgo } },
-      _sum: { totalCost: true },
-    });
-    const spent = result._sum.totalCost ?? 0;
+    const spent = await getSpend(new Date(now - 2_592_000_000).toISOString());
     if (spent >= config.monthlyLimit) {
       return {
-        allowed: config.action === "alert",
-        reason: `Monthly spend cap of $${config.monthlyLimit} exceeded (spent: $${spent.toFixed(4)})`,
+        allowed: !shouldBlock(config.action),
+        reason: `Monthly spend cap $${config.monthlyLimit} exceeded (spent: $${spent.toFixed(4)})`,
       };
     }
   }

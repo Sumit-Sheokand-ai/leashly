@@ -46,7 +46,11 @@ export default function LoginPage() {
         setError("Invalid email or password");
       }
     } else {
-      router.push(redirectTo);
+      // New users (no keys yet) → onboarding
+      const keysRes = await fetch("/api/keys").catch(() => null);
+      const keys    = keysRes?.ok ? await keysRes.json().catch(() => []) : [];
+      const isNew   = Array.isArray(keys) && keys.length === 0 && redirectTo === "/dashboard";
+      router.push(isNew ? "/dashboard/onboarding" : redirectTo);
       router.refresh();
     }
   }

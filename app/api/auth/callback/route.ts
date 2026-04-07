@@ -9,57 +9,57 @@ export async function GET(req: NextRequest) {
   const redirect = searchParams.get("redirect");
   const next     = redirect ?? searchParams.get("next") ?? "/dashboard";
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
-  }
+  if (!code) return NextResponse.redirect(`${origin}/login?error=missing_code`);
 
   const cookieStore = await cookies();
-  const supabase = createServerClient(
+  const supabase    = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, { ...options, maxAge: SUPABASE_COOKIE_MAX_AGE })
-          );
-        },
+        getAll()        { return cookieStore.getAll(); },
+        setAll(toSet)   { toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, { ...options, maxAge: SUPABASE_COOKIE_MAX_AGE })); },
       },
     }
   );
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
   if (error || !data.user) {
-    console.error("Auth callback error:", error?.message);
+    console.error("[auth/callback] Error:", error?.message);
     return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
-  const { id: supabaseId, email } = data.user;
+  const { id: userId, email } = data.user;
+  if (!email) return NextResponse.redirect(`${origin}/login?error=no_email`);
 
-  if (!email) {
-    return NextResponse.redirect(`${origin}/login?error=no_email`);
-  }
-
+  let isNewUser = false;
   try {
-    const { prisma } = await import("@/lib/prisma");
-    const existing = await prisma.user.findUnique({ where: { id: supabaseId } });
-    await prisma.user.upsert({
-      where: { id: supabaseId },
-      update: {},
-      create: { id: supabaseId, email },
-    });
+    const { createSupabaseAdmin } = await import("@/lib/supabase/admin");
+    const db = createSupabaseAdmin();
 
-    if (!existing) {
+    // Check if user already exists
+    const { data: existing } = await db.from("User").select("id").eq("id", userId).single();
+    isNewUser = !existing;
+
+    // Upsert user record
+    await db.from("User").upsert(
+      { id: userId, email },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
+
+    // Send welcome email to new users
+    if (isNewUser) {
       const { sendWelcomeEmail } = await import("@/lib/resend");
-      await sendWelcomeEmail(email).catch((e) =>
-        console.error("Welcome email failed:", e)
-      );
+      await sendWelcomeEmail(email).catch((e) => console.error("[auth/callback] Welcome email failed:", e));
     }
-  } catch (dbError) {
-    console.error("DB sync error in auth callback:", dbError);
+  } catch (err) {
+    console.error("[auth/callback] DB sync error:", err);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  // New users → onboarding (unless they came from a specific redirect)
+  const destination = isNewUser && next === "/dashboard"
+    ? `${origin}/dashboard/onboarding`
+    : `${origin}${next}`;
+
+  return NextResponse.redirect(destination);
 }

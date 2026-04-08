@@ -49,3 +49,6 @@ next-env.d.ts
 .env.local
 .env.production
 .env.development
+
+# Conflicts with app/manifest.ts — remove from public/
+/public/manifest.json

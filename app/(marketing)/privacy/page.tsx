@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Privacy Policy — Leashly",
+export const metadata: Metadata = {
+  title: "Privacy Policy",
   description: "How Leashly collects, uses, and protects your data.",
+  alternates: { canonical: "https://www.leashly.dev/privacy" },
+  robots: { index: true, follow: false },
 };
 
 export default function PrivacyPage() {
@@ -82,13 +85,12 @@ export default function PrivacyPage() {
             <h2 className="font-mono text-lg font-bold text-white mb-3">8. Security</h2>
             <p className="text-sm text-[var(--text-dim)] leading-relaxed">
               We use AES-256-CBC encryption for API keys, bcrypt for passwords, HTTPS for all connections, and Row Level Security on our database.
-              If you discover a vulnerability, please email <a href="mailto:support@leashly.dev" className="text-[var(--green)] hover:underline">support@leashly.dev</a>.
             </p>
           </section>
           <section>
             <h2 className="font-mono text-lg font-bold text-white mb-3">9. Changes to this policy</h2>
             <p className="text-sm text-[var(--text-dim)] leading-relaxed">
-              We may update this policy occasionally. We'll notify you by email or a notice on the dashboard for significant changes.
+              We may update this policy occasionally. We&apos;ll notify you by email or a notice on the dashboard for significant changes.
             </p>
           </section>
           <section>

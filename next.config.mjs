@@ -13,11 +13,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' blob: data: https:",
-      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com`,
+      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms`,
       "frame-src https://accounts.google.com https://www.googletagmanager.com",
       "frame-ancestors 'none'",
     ].join("; "),
@@ -30,34 +30,27 @@ const nextConfig = {
 
   async redirects() {
     return [
-      // non-www → www (permanent) — keeps Authorization header intact
+      // non-www → www (301 permanent — Google follows this for canonical)
       {
         source: "/:path*",
         has: [{ type: "host", value: "leashly.dev" }],
         destination: "https://www.leashly.dev/:path*",
         permanent: true,
       },
-      // /api/proxy/chat/completions → /api/proxy/v1/chat/completions (backward compat)
-      {
-        source: "/api/proxy/chat/completions",
-        destination: "/api/proxy/v1/chat/completions",
-        permanent: false,
-      },
-      {
-        source: "/api/proxy/completions",
-        destination: "/api/proxy/v1/completions",
-        permanent: false,
-      },
+      // proxy backward compat
+      { source: "/api/proxy/chat/completions", destination: "/api/proxy/v1/chat/completions", permanent: false },
+      { source: "/api/proxy/completions",      destination: "/api/proxy/v1/completions",      permanent: false },
     ];
   },
 
   async headers() {
     return [
+      // Security headers on all pages except static files
       {
-        source: "/((?!sitemap.xml|robots.txt).*)",
+        source: "/((?!sitemap.xml|robots.txt|manifest.json|manifest.webmanifest|favicon|logo|og-image|bb149e).*)",
         headers: securityHeaders,
       },
-      // CORS for proxy — allow any origin to call it
+      // CORS for proxy
       {
         source: "/api/proxy/:path*",
         headers: [

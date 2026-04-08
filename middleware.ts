@@ -4,8 +4,19 @@ import { SUPABASE_COOKIE_MAX_AGE } from "@/lib/supabase/config";
 
 const INDEXNOW_KEY_FILENAME = process.env.NEXT_PUBLIC_INDEXNOW_KEY_FILENAME ?? "bb149e02314a49ef97036b68d89ffd79.txt";
 const INDEXNOW_KEY_PATH = `/${INDEXNOW_KEY_FILENAME.replace(/^\/+/, "")}`;
-const PUBLIC_PATHS = ["/", "/login", "/register", "/sitemap.xml", "/robots.txt", INDEXNOW_KEY_PATH];
-const PUBLIC_PREFIXES = ["/api/auth", "/api/health", "/api/proxy", "/_next", "/favicon"];
+
+const PUBLIC_PATHS = [
+  "/", "/login", "/register",
+  "/sitemap.xml", "/robots.txt",
+  "/manifest.webmanifest", "/manifest.json", // PWA manifest — must be public
+  "/llms.txt",
+  INDEXNOW_KEY_PATH,
+];
+
+const PUBLIC_PREFIXES = [
+  "/api/auth", "/api/health", "/api/proxy", "/api/llms",
+  "/_next", "/favicon", "/logo", "/og-image",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -24,9 +35,7 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
+        getAll() { return req.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = NextResponse.next({ request: req });
@@ -53,6 +62,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt|json|xml)).*)",
   ],
 };

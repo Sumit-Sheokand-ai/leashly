@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.leashly.dev";
+
 export default function RegisterPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [confirm, setConfirm]     = useState("");
+  const [error, setError]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [oauthLoading, setOAuth]  = useState<string | null>(null);
 
   const supabase = createSupabaseBrowserClient();
 
@@ -20,26 +22,23 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     if (!email || !password || !confirm) { setError("All fields are required"); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
-    if (password !== confirm) { setError("Passwords do not match"); return; }
-
+    if (password.length < 8)  { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirm)  { setError("Passwords do not match"); return; }
     setLoading(true);
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
+      email, password,
+      options: { emailRedirectTo: `${APP_URL}/api/auth/callback` },
     });
     setLoading(false);
-
-    if (signUpError) { setError(signUpError.message); }
-    else { router.push("/login?registered=1"); }
+    if (signUpError) setError(signUpError.message);
+    else router.push("/login?registered=1");
   }
 
   async function handleOAuth(provider: "google" | "github") {
-    setOauthLoading(provider);
+    setOAuth(provider);
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+      options: { redirectTo: `${APP_URL}/api/auth/callback` },
     });
   }
 
@@ -93,9 +92,7 @@ export default function RegisterPage() {
             <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
               placeholder="••••••••" className={inputCls} />
           </div>
-
           {error && <div className="bg-[#ff4444]/8 border border-[#ff4444]/25 rounded-lg px-3 py-2.5 text-sm text-[#ff6666]">{error}</div>}
-
           <button type="submit" disabled={loading}
             className="w-full bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? "Creating account..." : "Create account"}

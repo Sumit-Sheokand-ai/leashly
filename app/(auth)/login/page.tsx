@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+// Always www — leashly.dev redirects and loses session cookie
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.leashly.dev";
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,20 +19,12 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
   const supabase = createSupabaseBrowserClient();
-
-  // Where to go after login — default dashboard
   const redirectTo = searchParams.get("redirect") ?? "/dashboard";
 
   useEffect(() => {
-    if (searchParams.get("registered") === "1") {
-      setSuccess("Account created! Check your email to confirm, then sign in.");
-    }
-    if (searchParams.get("error") === "auth_failed") {
-      setError("Authentication failed. Please try again.");
-    }
-    if (searchParams.get("error") === "missing_code") {
-      setError("Invalid login link. Please try again.");
-    }
+    if (searchParams.get("registered") === "1") setSuccess("Account created! Check your email to confirm, then sign in.");
+    if (searchParams.get("error") === "auth_failed")  setError("Authentication failed. Please try again.");
+    if (searchParams.get("error") === "missing_code") setError("Invalid login link. Please try again.");
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,13 +35,10 @@ export default function LoginPage() {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (signInError) {
-      if (signInError.message.includes("Email not confirmed")) {
-        setError("Please confirm your email before signing in. Check your inbox.");
-      } else {
-        setError("Invalid email or password");
-      }
+      setError(signInError.message.includes("Email not confirmed")
+        ? "Please confirm your email before signing in. Check your inbox."
+        : "Invalid email or password");
     } else {
-      // New users (no keys yet) → onboarding
       const keysRes = await fetch("/api/keys").catch(() => null);
       const keys    = keysRes?.ok ? await keysRes.json().catch(() => []) : [];
       const isNew   = Array.isArray(keys) && keys.length === 0 && redirectTo === "/dashboard";
@@ -57,10 +49,9 @@ export default function LoginPage() {
 
   async function handleOAuth(provider: "google" | "github") {
     setOauthLoading(provider);
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent(redirectTo)}` },
-    });
+    // Use APP_URL (hardcoded www) so session cookie is set on the right domain
+    const callbackUrl = `${APP_URL}/api/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl } });
   }
 
   const inputCls = "w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#444444] focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88]/20 transition-colors";
@@ -110,7 +101,7 @@ export default function LoginPage() {
           </div>
 
           {success && <div className="bg-[#00ff88]/8 border border-[#00ff88]/25 rounded-lg px-3 py-2.5 text-sm text-[#00ff88]">{success}</div>}
-          {error && <div className="bg-[#ff4444]/8 border border-[#ff4444]/25 rounded-lg px-3 py-2.5 text-sm text-[#ff6666]">{error}</div>}
+          {error   && <div className="bg-[#ff4444]/8 border border-[#ff4444]/25 rounded-lg px-3 py-2.5 text-sm text-[#ff6666]">{error}</div>}
 
           <button type="submit" disabled={loading}
             className="w-full bg-[#00ff88] hover:bg-[#00dd77] text-black font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">

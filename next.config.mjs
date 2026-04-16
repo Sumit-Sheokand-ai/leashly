@@ -13,13 +13,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // Clarity loads scripts from scripts.clarity.ms AND www.clarity.ms
       "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' blob: data: https:",
-      // Clarity also pings .clarity.ms for analytics data
-      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://scripts.clarity.ms`,
+      // Added https://www.google.com for GA4 g/collect endpoint
+      `connect-src 'self' ${SUPABASE_URL} ${SUPABASE_WSS} https://accounts.google.com https://oauth2.googleapis.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.google.com https://www.clarity.ms https://*.clarity.ms https://scripts.clarity.ms`,
       "frame-src https://accounts.google.com https://www.googletagmanager.com",
       "frame-ancestors 'none'",
     ].join("; "),

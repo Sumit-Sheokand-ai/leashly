@@ -50,5 +50,8 @@ next-env.d.ts
 .env.production
 .env.development
 
-# Conflicts with app/manifest.ts — remove from public/
+# Conflicts with app/manifest.ts
 /public/manifest.json
+
+# Conflicts with app/sitemap.ts — old static file with non-www URLs
+/public/sitemap.xml

@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  // Login/register should not be indexed but should have correct canonicals
   robots: { index: false, follow: false },
 };
 

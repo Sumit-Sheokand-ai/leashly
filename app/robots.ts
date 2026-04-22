@@ -7,14 +7,23 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/docs", "/login", "/register", "/privacy", "/terms", "/llms.txt"],
-        disallow: ["/dashboard/", "/api/", "/invite"],
+        allow: ["/", "/docs"],
+        // Explicitly block everything that should not be indexed
+        disallow: [
+          "/dashboard/",
+          "/api/",
+          "/login",
+          "/register",
+          "/invite",
+          "/privacy",
+          "/terms",
+        ],
       },
-      // Allow AI crawlers to read llms.txt and public pages
+      // Allow AI crawlers on public content only
       {
         userAgent: ["GPTBot", "ChatGPT-User", "PerplexityBot", "ClaudeBot", "anthropic-ai"],
-        allow: ["/", "/docs", "/llms.txt", "/register"],
-        disallow: ["/dashboard/", "/api/"],
+        allow: ["/", "/docs", "/llms.txt"],
+        disallow: ["/dashboard/", "/api/", "/login", "/register"],
       },
       // Block scraper bots
       {

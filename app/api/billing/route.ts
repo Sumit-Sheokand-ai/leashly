@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import Stripe from "stripe";
 import { sendCancellationEmail } from "@/lib/resend";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-03-25.dahlia" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_unset_at_build", { apiVersion: "2026-03-25.dahlia" }); // guard: avoid throwing during `next build` when the key is absent; real key is used at runtime
 
 function getPeriodEnd(sub: Stripe.Subscription): number | null {
   return sub.items?.data?.[0]?.current_period_end ?? null;

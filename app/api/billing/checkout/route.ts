@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-03-25.dahlia" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "sk_unset_at_build", { apiVersion: "2026-03-25.dahlia" }); // guard: avoid throwing during `next build` when the key is absent; real key is used at runtime
 
 const PRO_PRICE = "price_1TGu6iRMLubk1q1nilHfeySY"; // $9 CAD/mo
 

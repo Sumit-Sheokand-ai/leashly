@@ -1034,7 +1034,7 @@ export default function DocsPage() {
                 <Link href="/register" className="text-[10px] text-[#222222] hover:text-[#555555] transition-colors">Get started</Link>
               </div>
             </div>
-            <p className="mt-4 text-[11px] text-[#666666]">
+            <p className="mt-4 text-[11px] text-[#888888]">
               Leashly is an independent product and is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic or Google.
               OpenAI, GPT, ChatGPT, Claude and Gemini are trademarks of their respective owners and are named here only to describe compatibility.
             </p>

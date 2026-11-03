@@ -508,7 +508,7 @@ export default function LandingPage() {
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">X / Twitter</a>
             </div>
           </div>
-          <p className="mt-6 text-[var(--text-ghost)] text-xs font-mono text-center sm:text-left">
+          <p className="mt-6 text-[var(--text-mid)] text-xs font-mono text-center sm:text-left">
             Leashly is an independent product and is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic or Google.
             OpenAI, GPT, ChatGPT, Claude and Gemini are trademarks of their respective owners and are named here only to describe compatibility.
           </p>

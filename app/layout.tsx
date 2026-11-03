@@ -14,10 +14,10 @@ export const metadata: Metadata = {
   description:
     "Leashly is an AI cost control proxy. Enforce spend caps, rate limits, and prompt injection protection for OpenAI, Anthropic, and Gemini. Cut your AI bill by up to 60%.",
   keywords: [
-    "AI cost control", "LLM proxy", "OpenAI cost optimization", "AI spend cap",
+    "AI cost control", "LLM proxy", "LLM cost optimization", "AI spend cap",
     "rate limiting LLM", "prompt injection protection", "semantic cache AI",
-    "smart routing LLM", "AI API proxy", "reduce OpenAI costs",
-    "AI budget management", "leashly", "chatgpt cost control",
+    "smart routing LLM", "AI API proxy", "reduce LLM API costs",
+    "AI budget management", "leashly",
     "anthropic proxy", "gemini proxy", "llm cost monitoring",
   ],
   authors:   [{ name: "Leashly", url: BASE_URL }],
@@ -82,8 +82,8 @@ const faqSchema = {
   "@type": "FAQPage",
   mainEntity: [
     { "@type": "Question", name: "What is an AI cost control proxy?", acceptedAnswer: { "@type": "Answer", text: "An AI cost control proxy sits between your application and LLM providers like OpenAI or Anthropic. It enforces spend caps, rate limits, and security filters on every request, and can actively reduce costs through smart routing and semantic caching." } },
-    { "@type": "Question", name: "How do I reduce my OpenAI API costs?", acceptedAnswer: { "@type": "Answer", text: "Leashly reduces OpenAI costs through smart routing (automatically using cheaper models for simple tasks), semantic caching (returning cached responses for similar prompts at zero cost), and prompt compression (shrinking system prompts before they reach the model). Average savings are 60%." } },
-    { "@type": "Question", name: "How do I add rate limiting to my OpenAI API calls?", acceptedAnswer: { "@type": "Answer", text: "With Leashly, add one line of code — change your OpenAI base URL to https://www.leashly.dev/api/proxy and your API key to your Leashly proxy key. Then configure rate limiting rules in the dashboard with no additional code changes." } },
+    { "@type": "Question", name: "How do I reduce my LLM API costs?", acceptedAnswer: { "@type": "Answer", text: "Leashly reduces LLM API costs through smart routing (automatically using cheaper models for simple tasks), semantic caching (returning cached responses for similar prompts at zero cost), and prompt compression (shrinking system prompts before they reach the model). Average savings are 60%." } },
+    { "@type": "Question", name: "How do I add rate limiting to my LLM API calls?", acceptedAnswer: { "@type": "Answer", text: "With Leashly, add one line of code — change your SDK's base URL to https://www.leashly.dev/api/proxy and your API key to your Leashly proxy key. Then configure rate limiting rules in the dashboard with no additional code changes." } },
     { "@type": "Question", name: "What is prompt injection and how do I prevent it?", acceptedAnswer: { "@type": "Answer", text: "Prompt injection is an attack where malicious users insert instructions into prompts to hijack AI behavior. Leashly scans every request against 50+ known attack patterns and blocks them before they reach the model." } },
     { "@type": "Question", name: "Does Leashly work with Anthropic Claude?", acceptedAnswer: { "@type": "Answer", text: "Yes. Leashly supports OpenAI, Anthropic Claude, Google Gemini, and any OpenAI-compatible endpoint." } },
     { "@type": "Question", name: "How much latency does an LLM proxy add?", acceptedAnswer: { "@type": "Answer", text: "Leashly adds less than 5ms of overhead in typical operation. Rule evaluation happens in-memory with no additional database round-trips on the hot path." } },
@@ -93,7 +93,7 @@ const faqSchema = {
 const howToSchema = {
   "@context": "https://schema.org",
   "@type": "HowTo",
-  name: "How to add spend caps and rate limits to OpenAI API",
+  name: "How to add spend caps and rate limits to LLM API calls",
   description: "Set up AI cost control for your OpenAI, Anthropic, or Gemini API calls in under 5 minutes using Leashly.",
   totalTime: "PT5M",
   step: [

@@ -95,7 +95,7 @@ const FAQS = [
   {q:"Does Leashly add latency?",a:"No. The proxy runs in the same region as your LLM provider. Typical overhead is under 5ms."},
   {q:"Is my API key safe?",a:"Yes. Keys are encrypted at rest with AES-256-CBC. We never log or expose them in any response."},
   {q:"Does it work with streaming?",a:"Yes. Leashly fully supports server-sent events (SSE) streaming responses, passing them through transparently."},
-  {q:"What providers do you support?",a:"OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint. Add custom endpoints in the dashboard."},
+  {q:"What providers do you support?",a:"OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint. Add custom endpoints in the dashboard. Leashly is an independent product and is not affiliated with or endorsed by any of these providers."},
   {q:"What happens when I hit a spend cap?",a:'Leashly returns a 429 with a clean JSON error. Your app gets a structured error to handle gracefully.'},
   {q:"Can I self-host it?",a:"Yes. Leashly is open-source. Deploy on Vercel, Railway, or any Node.js host in minutes."},
 ];
@@ -148,7 +148,7 @@ response = client.chat.completions.create(
 const TERMINAL_LINES = [
   "$ checking monthly spend...",
   "",
-  "OpenAI invoice:  $41,847.32",
+  "LLM API invoice: $41,847.32",
   "⚠  Alert: 94% from user_id: 8821",
   "⚠  Alert: Spike 2:14am — 6:08am",
   "⚠  Alert: 847,000 tokens in 4 hours",
@@ -508,6 +508,10 @@ export default function LandingPage() {
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-[var(--text-ghost)] hover:text-white transition-colors font-mono text-xs">X / Twitter</a>
             </div>
           </div>
+          <p className="mt-6 text-[var(--text-ghost)] text-xs font-mono text-center sm:text-left">
+            Leashly is an independent product and is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic or Google.
+            OpenAI, GPT, ChatGPT, Claude and Gemini are trademarks of their respective owners and are named here only to describe compatibility.
+          </p>
         </div>
       </footer>
     </div>

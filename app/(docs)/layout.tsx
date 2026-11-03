@@ -9,14 +9,14 @@ export const metadata: Metadata = {
   keywords: [
     "leashly docs",
     "LLM proxy documentation",
-    "OpenAI proxy setup",
+    "LLM proxy setup",
     "AI cost control guide",
-    "rate limit OpenAI API",
+    "rate limit LLM API",
     "prompt injection detection",
     "semantic caching LLM",
     "smart model routing",
     "AI proxy quickstart",
-    "openai baseURL proxy",
+    "SDK baseURL proxy",
   ],
   alternates: {
     canonical: `${BASE_URL}/docs`,
